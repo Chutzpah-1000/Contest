@@ -99,7 +99,14 @@ def download_seoul_datasets(
     for dataset in datasets:
         url = build_seoul_open_data_url(api_key=api_key, service_name=dataset.service_name)
         response = http_client.get(url, timeout=REQUEST_TIMEOUT_S)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as error:
+            status_code = getattr(error.response, "status_code", "unknown")
+            raise ValueError(
+                f"Seoul Open Data request failed for {dataset.service_name} "
+                f"with HTTP {status_code}.",
+            ) from None
         path = output_dir / dataset.filename
         path.write_bytes(response.content)
         written[dataset.filename] = path

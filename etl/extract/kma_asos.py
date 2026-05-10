@@ -88,7 +88,11 @@ def download_kma_asos(
         station_id=station_id,
     )
     response = http_client.get(url, timeout=REQUEST_TIMEOUT_S)
-    response.raise_for_status()
+    try:
+        response.raise_for_status()
+    except requests.HTTPError as error:
+        status_code = getattr(error.response, "status_code", "unknown")
+        raise ValueError(f"KMA ASOS request failed with HTTP {status_code}.") from None
     path = output_dir / BRONZE_ASOS
     path.write_bytes(response.content)
     return path

@@ -1,0 +1,235 @@
+# pyproject.toml — 유출지하수 매칭 플랫폼
+# 모든 도구의 단일 진실 소스 (Single Source of Truth)
+# - Ruff      : linter + formatter (Black/isort/flake8/pylint/pyupgrade/pydocstyle 대체)
+# - Pyright   : 타입 체커 (strict mode)
+# - uv        : 패키지/락 관리
+# 참고: docs/TSD.md §2 (기술 스택)
+
+[project]
+name = "groundwater-matching"
+version = "0.1.0"
+description = "유출지하수 공급-수요 매칭 플랫폼 (서울 빅데이터 경진대회 2026 창업 부문)"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+authors = [{ name = "lala1522", email = "lala1522@gachon.ac.kr" }]
+license = { text = "MIT" }
+
+dependencies = [
+    "streamlit>=1.32",
+    "streamlit-folium>=0.20",
+    "folium>=0.16",
+    "pandas>=2.2",
+    "geopandas>=1.0",
+    "shapely>=2.0",
+    "pyproj>=3.6",
+    "duckdb>=0.10",
+    "lightgbm>=4.3",
+    "scikit-learn>=1.4",
+    "shap>=0.45",
+    "refet>=0.4",
+    "pulp>=2.8",
+    "plotly>=5.20",
+    "altair>=5.3",
+    "numpy>=1.26",
+    "pyarrow>=15.0",
+    "requests>=2.32",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.6.9",
+    "pyright>=1.1.385",
+    "pytest>=8.2",
+    "pytest-cov>=5.0",
+    "pre-commit>=3.7",
+    "pip-audit>=2.7",
+    "ipykernel>=6.29",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app", "etl", "models"]
+
+# ─────────────────────────────────────────────────────────────
+# Ruff — Linter + Formatter
+# 정책: select = ["ALL"] 후 *반드시 필요한 것만* ignore
+#       엄격함을 유지하되 formatter 충돌·실용 가치 0인 규칙만 제외
+# ─────────────────────────────────────────────────────────────
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+indent-width = 4
+src = ["app", "etl", "models", "tests"]
+extend-exclude = [
+    ".venv", "venv", "build", "dist",
+    "data/raw", "data/bronze", "data/silver", "data/gold",
+    "notebooks",
+]
+respect-gitignore = true
+
+[tool.ruff.lint]
+preview = true
+explicit-preview-rules = false
+
+# ── 모든 규칙 활성화 ──
+select = ["ALL"]
+
+# ── 실용적 예외 (이유는 주석에) ──
+ignore = [
+    # === Formatter 충돌 (반드시 ignore) ===
+    "COM812",  # missing-trailing-comma         → formatter 가 처리
+    "ISC001",  # single-line-implicit-concat    → formatter 충돌
+
+    # === Docstring 스타일 충돌 (한 쪽만 채택) ===
+    "D203",    # one-blank-line-before-class    → D211 와 충돌
+    "D213",    # multi-line-docstring-second    → D212 와 충돌
+
+    # === 한국어 프로젝트·1인 운영 실용 예외 ===
+    "D100",    # undocumented-public-module     → 모듈 docstring 강제는 과함
+    "D104",    # undocumented-public-package    → __init__.py docstring 강제 X
+    "CPY001",  # missing-copyright-notice       → 1인 프로젝트 과함
+    "FIX002",  # line-contains-todo             → WIP TODO 허용
+    "TD002",   # missing-todo-author            → 1인 작업
+    "TD003",   # missing-todo-link              → 이슈 트래커 미사용
+
+    # === 너무 노이즈가 큰 규칙 ===
+    "PLR2004", # magic-value-comparison         → 임계값 0.5 같은 것까지 잡음
+    "ANN401",  # any-type                       → 외부 라이브러리 wrap 시 합법
+    "TRY003",  # raise-vanilla-args             → 짧은 메시지 금지는 과함
+    "EM101",   # raw-string-in-exception        → 짧은 코드 가독성
+    "EM102",   # f-string-in-exception          → 동일
+
+    # === 라인 길이 (formatter 가 처리) ===
+    "E501",
+]
+
+# 빠른 수정 가능 규칙 (--fix 시 자동 적용)
+fixable = ["ALL"]
+unfixable = [
+    "F401",  # unused-import → 의도 확인 필요
+    "ERA001", # commented-out-code → 의도 확인 필요
+]
+
+# Per-file 완화 (테스트·노트북·진입점)
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101",    # assert 사용 허용
+    "ANN",     # 타입 힌트 의무 면제
+    "D",       # docstring 의무 면제
+    "PLR2004", # 매직 넘버 허용
+    "SLF001",  # private 멤버 접근 허용
+    "INP001",  # __init__.py 미존재 허용
+]
+"app/main.py" = [
+    "INP001",  # Streamlit entry point
+]
+"etl/**/*.py" = [
+    "T201",    # print 허용 (로깅 전 단계)
+]
+"notebooks/**/*.ipynb" = [
+    "ALL",     # 실험용 — 자유 허용
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.flake8-type-checking]
+strict = true
+runtime-evaluated-base-classes = ["pydantic.BaseModel", "pydantic.v1.BaseModel"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "typer.Argument", "typer.Option"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "etl", "models"]
+combine-as-imports = true
+force-sort-within-sections = true
+required-imports = ["from __future__ import annotations"]
+
+[tool.ruff.lint.pylint]
+max-args = 8
+max-statements = 60
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+skip-magic-trailing-comma = false
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
+
+# ─────────────────────────────────────────────────────────────
+# Pyright — Static Type Checker (strict mode)
+# ─────────────────────────────────────────────────────────────
+[tool.pyright]
+include = ["app", "etl", "models"]
+exclude = [
+    "**/__pycache__",
+    "**/.venv",
+    "data",
+    "notebooks",
+    "tests",  # 별도 완화 모드로 검사
+]
+typeCheckingMode = "strict"
+pythonVersion = "3.11"
+pythonPlatform = "All"
+
+# strict 모드 베이스 + 추가 강화
+reportImplicitOverride = "error"
+reportShadowedImports = "error"
+reportImportCycles = "error"
+reportUnnecessaryTypeIgnoreComment = "warning"
+reportMatchNotExhaustive = "error"
+reportPropertyTypeMismatch = "error"
+reportUntypedFunctionDecorator = "warning"
+
+# 외부 라이브러리 stub 부재 완화 (LightGBM, PuLP, geopandas 등)
+reportMissingTypeStubs = "none"
+reportUnknownMemberType = "warning"
+reportUnknownArgumentType = "warning"
+reportUnknownVariableType = "warning"
+
+# 별도 tests 검사 (완화 모드)
+[[tool.pyright.executionEnvironments]]
+root = "tests"
+reportMissingTypeStubs = "none"
+reportUnknownMemberType = "none"
+reportUnknownArgumentType = "none"
+
+# ─────────────────────────────────────────────────────────────
+# pytest
+# ─────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=app",
+    "--cov=etl",
+    "--cov=models",
+    "--cov-report=term-missing",
+    "--cov-fail-under=60",
+]
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+branch = true
+source = ["app", "etl", "models"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

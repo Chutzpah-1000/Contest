@@ -37,8 +37,7 @@ _PARK_COLS: list[str] = ["demand_id", "name", "latitude", "longitude", "area_m2"
 _ROAD_COLS: list[str] = ["demand_id", "name", "centroid_lat", "centroid_lng", "length_m"]
 _FLOW_COLS: list[str] = ["supplier_id", "demand_id", "ton_per_day"]
 
-_HTML_TEMPLATE = """\
-<!DOCTYPE html>
+_HTML_TEMPLATE = r"""<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
@@ -87,12 +86,34 @@ setTimeout(function(){
   }
 },6000);
 </script>
-<!-- Streamlit components.html iframe은 srcdoc 컨텍스트라서 window.location.protocol
-     이 'about:'. dapi.kakao.com/v2/maps/sdk.js 로더는 이를 보고 nested kakao.js를
-     http://t1.daumcdn.net 으로 요청 → HTTPS 페이지에서 mixed-content 차단.
-     해결: 로더를 건너뛰고 실제 SDK 파일을 직접 HTTPS로 로드. -->
+<script>
+// Streamlit components.html iframe은 srcdoc 컨텍스트라서 window.location.protocol
+// 이 'about:'. dapi.kakao.com 로더는 이를 보고 nested kakao.js를 http:// 로
+// 요청 → HTTPS 페이지에서 mixed-content 차단됨.
+// 해결: appendChild·insertBefore·document.write를 monkey-patch해서 로더가
+// 주입하는 http://t1.daumcdn.net 스크립트를 https:// 로 재작성.
+// 로더는 그대로 두어 kakao.maps 네임스페이스(특히 kakao.maps.load) 셋업은 정상 진행.
+(function(){
+  function fix(node){
+    if(node&&node.tagName==='SCRIPT'&&typeof node.src==='string'
+        &&/^http:\/\/t1\.daumcdn\.net/.test(node.src)){
+      node.src=node.src.replace(/^http:/,'https:');
+    }
+    return node;
+  }
+  var origAppend=Node.prototype.appendChild;
+  Node.prototype.appendChild=function(node){return origAppend.call(this,fix(node));};
+  var origInsert=Node.prototype.insertBefore;
+  Node.prototype.insertBefore=function(node,ref){return origInsert.call(this,fix(node),ref);};
+  var origWrite=document.write;
+  document.write=function(s){
+    if(typeof s==='string')s=s.replace(/http:\/\/t1\.daumcdn\.net/g,'https://t1.daumcdn.net');
+    return origWrite.call(document,s);
+  };
+})();
+</script>
 <script type="text/javascript"
-  src="https://t1.daumcdn.net/mapjsapi/js/main/4.4.23/kakao.js?appkey=__JS_KEY__&autoload=false"
+  src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=__JS_KEY__&autoload=false"
   onload="__sdkLoaded=true;"
   onerror="__status('❌ Kakao SDK 스크립트 자체가 로드 실패. JS키가 비어있거나 CSP 차단.',true);"></script>
 <script>

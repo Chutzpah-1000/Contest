@@ -39,10 +39,11 @@ def test_kakao_map_html_contains_required_elements() -> None:
         js_key="test-key",
     )
 
-    assert "t1.daumcdn.net/mapjsapi/js/main/" in html
+    assert "dapi.kakao.com/v2/maps/sdk.js" in html
     assert "test-key" in html
     assert "SUPPLIERS" in html
     assert "kakao.maps.Map" in html
+    assert "Node.prototype.appendChild" in html
 
 
 def test_kakao_map_html_centers_on_search_match() -> None:

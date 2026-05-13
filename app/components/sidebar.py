@@ -1,20 +1,130 @@
 from __future__ import annotations
 
+from html import escape
+from typing import TYPE_CHECKING
+
 import streamlit as st
 
+if TYPE_CHECKING:
+    import pandas as pd
 
-def render_sidebar() -> int:
-    """Render app controls in the sidebar.
+
+def render_sidebar(suppliers: pd.DataFrame) -> tuple[int, str]:
+    """Render the sidebar with search, radius controls, and a building detail card.
 
     Returns:
-        Selected matching radius in meters.
+        Tuple of (selected matching radius in meters, building search term).
     """
     with st.sidebar:
-        st.header("조건")
-        return st.radio(
+        st.markdown(
+            """
+            <style>
+            [data-testid="stSidebar"] {background:#ffffff;border-right:1px solid #E4E4E0;}
+            .building-card {
+                background:#F7F7F5;border:1px solid #E4E4E0;border-radius:8px;
+                padding:16px;margin-top:12px;
+            }
+            .building-name {font-size:15px;font-weight:700;color:#111111;line-height:1.35;margin-bottom:4px;}
+            .building-addr {font-size:12px;color:#666A70;margin-bottom:12px;}
+            .discharge-label {font-size:11px;font-weight:600;color:#666A70;text-transform:uppercase;letter-spacing:.04em;}
+            .discharge-value {font-size:28px;font-weight:700;color:#1D7F5F;line-height:1.15;margin:2px 0 12px;}
+            .discharge-unit {font-size:13px;font-weight:400;color:#666A70;}
+            .meta-row {display:flex;gap:16px;margin-top:4px;}
+            .meta-block {flex:1;}
+            .meta-label {font-size:11px;color:#666A70;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+            .meta-value {font-size:13px;font-weight:600;color:#111111;margin-top:2px;}
+            .reportable-badge {
+                display:inline-block;padding:2px 8px;border-radius:4px;
+                font-size:11px;font-weight:600;background:#E6F4EE;color:#1D7F5F;
+                margin-top:8px;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        st.markdown(
+            "<p style='font-size:11px;font-weight:600;color:#666A70;text-transform:uppercase;"
+            "letter-spacing:.05em;margin-bottom:6px;'>건물 검색</p>",
+            unsafe_allow_html=True,
+        )
+        search_term: str = st.text_input(
+            "건물 검색",
+            placeholder="예: 서울 광역자원순환센터",
+            label_visibility="collapsed",
+        )
+
+        matched = _find_building(suppliers, search_term)
+        if matched is not None:
+            _render_building_card(matched)
+        elif search_term:
+            st.caption("검색 결과가 없습니다.")
+
+        st.divider()
+
+        st.markdown(
+            "<p style='font-size:11px;font-weight:600;color:#666A70;text-transform:uppercase;"
+            "letter-spacing:.05em;margin-bottom:6px;'>매칭 반경</p>",
+            unsafe_allow_html=True,
+        )
+        radius_m: int = st.radio(
             "반경",
             options=[500, 1000, 2000],
-            format_func=lambda value: f"{value:,}m" if value < 1000 else f"{value // 1000}km",
+            format_func=lambda v: f"{v:,}m" if v < 1000 else f"{v // 1000}km",
             index=1,
             horizontal=True,
-        )
+            label_visibility="collapsed",
+        )  # type: ignore[assignment]  # st.radio returns Any; guaranteed int from options list
+
+        return radius_m, search_term
+
+
+def _find_building(suppliers: pd.DataFrame, search_term: str) -> dict[str, object] | None:
+    if not search_term or suppliers.empty or "name" not in suppliers.columns:
+        return None
+    term = search_term.lower()
+    mask = suppliers["name"].astype(str).str.lower().str.contains(term, regex=False, na=False)
+    matched = suppliers.loc[mask]
+    if matched.empty:
+        return None
+    row = matched.iloc[0]
+    return {
+        "name": str(row.get("name", "")),
+        "address": str(row.get("address", "")),
+        "daily_avg_supply_ton": float(row.get("daily_avg_supply_ton", 0.0)),
+        "water_quality_grade": int(row.get("water_quality_grade", 0)),
+        "report_status": str(row.get("report_status", "")),
+        "reportable": bool(row.get("reportable", False)),
+    }
+
+
+def _render_building_card(b: dict[str, object]) -> None:
+    ton = float(b["daily_avg_supply_ton"])  # type: ignore[arg-type]
+    grade = int(b["water_quality_grade"])  # type: ignore[arg-type]
+    status_map = {"discharging": "방류중", "reported": "신고완료"}
+    status_raw = str(b["report_status"])
+    status = status_map.get(status_raw, status_raw)
+    reportable = bool(b["reportable"])
+
+    st.markdown(
+        f"""
+        <div class="building-card">
+          <div class="building-name">{escape(str(b["name"]))}</div>
+          <div class="building-addr">{escape(str(b["address"]))}</div>
+          <div class="discharge-label">일 발생량</div>
+          <div class="discharge-value">{ton:,.0f}<span class="discharge-unit"> 톤/일</span></div>
+          <div class="meta-row">
+            <div class="meta-block">
+              <div class="meta-label">수질등급</div>
+              <div class="meta-value">{grade}등급</div>
+            </div>
+            <div class="meta-block">
+              <div class="meta-label">신고상태</div>
+              <div class="meta-value">{escape(status)}</div>
+            </div>
+          </div>
+          {"<div class='reportable-badge'>신고대상 ✓</div>" if reportable else ""}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )

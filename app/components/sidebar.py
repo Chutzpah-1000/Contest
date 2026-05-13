@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING
 
 import streamlit as st
 
+from app.services.roi import building_roi
+
 if TYPE_CHECKING:
     import pandas as pd
 
@@ -38,6 +40,14 @@ def render_sidebar(suppliers: pd.DataFrame) -> tuple[int, str]:
                 font-size:11px;font-weight:600;background:#E6F4EE;color:#1D7F5F;
                 margin-top:8px;
             }
+            .roi-block {
+                margin-top:14px;padding-top:12px;border-top:1px solid #E4E4E0;
+                display:grid;grid-template-columns:1fr 1fr;gap:12px;
+            }
+            .roi-label {font-size:11px;color:#666A70;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+            .roi-value {font-size:16px;font-weight:700;color:#1D7F5F;margin-top:2px;line-height:1.2;}
+            .roi-unit {font-size:11px;font-weight:400;color:#666A70;}
+            .roi-caption {font-size:10px;color:#888;margin-top:8px;line-height:1.4;}
             </style>
             """,
             unsafe_allow_html=True,
@@ -105,6 +115,8 @@ def _render_building_card(b: dict[str, object]) -> None:
     status_raw = str(b["report_status"])
     status = status_map.get(status_raw, status_raw)
     reportable = bool(b["reportable"])
+    roi = building_roi(ton)
+    savings_eok = roi.annual_savings_krw / 1e8
 
     st.markdown(
         f"""
@@ -124,6 +136,17 @@ def _render_building_card(b: dict[str, object]) -> None:
             </div>
           </div>
           {"<div class='reportable-badge'>신고대상 ✓</div>" if reportable else ""}
+          <div class="roi-block">
+            <div>
+              <div class="roi-label">연 하수요금 절감</div>
+              <div class="roi-value">{savings_eok:,.2f}<span class="roi-unit"> 억원/년</span></div>
+            </div>
+            <div>
+              <div class="roi-label">연 탄소 절감</div>
+              <div class="roi-value">{roi.annual_co2_tons:,.1f}<span class="roi-unit"> t-CO₂/년</span></div>
+            </div>
+          </div>
+          <div class="roi-caption">100% 재이용 시 추정치. 하수도요금 50% 감면 조례·전력 배출계수 0.4594 tCO₂eq/MWh 기준.</div>
         </div>
         """,
         unsafe_allow_html=True,

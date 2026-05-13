@@ -87,8 +87,12 @@ setTimeout(function(){
   }
 },6000);
 </script>
+<!-- Streamlit components.html iframe은 srcdoc 컨텍스트라서 window.location.protocol
+     이 'about:'. dapi.kakao.com/v2/maps/sdk.js 로더는 이를 보고 nested kakao.js를
+     http://t1.daumcdn.net 으로 요청 → HTTPS 페이지에서 mixed-content 차단.
+     해결: 로더를 건너뛰고 실제 SDK 파일을 직접 HTTPS로 로드. -->
 <script type="text/javascript"
-  src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=__JS_KEY__&autoload=false"
+  src="https://t1.daumcdn.net/mapjsapi/js/main/4.4.23/kakao.js?appkey=__JS_KEY__&autoload=false"
   onload="__sdkLoaded=true;"
   onerror="__status('❌ Kakao SDK 스크립트 자체가 로드 실패. JS키가 비어있거나 CSP 차단.',true);"></script>
 <script>

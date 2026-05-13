@@ -45,10 +45,17 @@ _HTML_TEMPLATE = """\
 <style>
 html,body{margin:0;padding:0;height:100%;}
 #map{width:100%;height:100%;}
+#status{position:absolute;top:10px;left:10px;right:10px;padding:8px 12px;border-radius:6px;
+font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;
+z-index:1000;display:none;background:#FFF4F1;color:#B54708;border:1px solid #F3D5C7;}
+#status.info{background:#F0F4F8;color:#1F2937;border-color:#D6DDE5;}
+#status code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;
+padding:1px 4px;border-radius:3px;background:rgba(0,0,0,0.06);}
 </style>
 </head>
 <body>
 <div id="map"></div>
+<div id="status"></div>
 <script>
 var SUPPLIERS=__SUPPLIERS_JSON__;
 var PARKS=__PARKS_JSON__;
@@ -59,10 +66,36 @@ var SEARCH_TERM=__SEARCH_TERM_JSON__;
 var CENTER_LAT=__CENTER_LAT__;
 var CENTER_LNG=__CENTER_LNG__;
 var ZOOM=__ZOOM__;
+var __sdkLoaded=false,__mapReady=false;
+function __status(html,isError){
+  var s=document.getElementById('status');
+  s.innerHTML=html;
+  s.className=isError?'':'info';
+  s.style.display='block';
+}
+function __hideStatus(){document.getElementById('status').style.display='none';}
+window.addEventListener('error',function(e){
+  __status('❌ JS 오류: '+(e.message||'unknown')+'<br>가능 원인: Kakao 키 무효 또는 도메인 미등록.',true);
+});
+setTimeout(function(){
+  if(__mapReady)return;
+  var host=(window.location&&window.location.host)||'(iframe srcdoc)';
+  if(!__sdkLoaded){
+    __status('❌ Kakao SDK 스크립트 로드 실패. <code>KAKAO_MAP_JS_KEY</code>가 비어있거나 네트워크 차단. iframe host: <code>'+host+'</code>',true);
+  } else {
+    __status('❌ SDK는 로드됐지만 지도가 초기화되지 않았습니다.<br>대부분 <b>카카오 디벨로퍼 콘솔 > 플랫폼 > Web</b>에 <code>'+host+'</code> 등록 누락. 또는 키가 <b>REST API 키</b>로 잘못 입력됨 (JavaScript 키 필요).',true);
+  }
+},6000);
 </script>
-<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=__JS_KEY__&autoload=false"></script>
+<script type="text/javascript"
+  src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=__JS_KEY__&autoload=false"
+  onload="__sdkLoaded=true;"
+  onerror="__status('❌ Kakao SDK 스크립트 자체가 로드 실패. JS키가 비어있거나 CSP 차단.',true);"></script>
 <script>
-kakao.maps.load(function(){
+if(typeof kakao==='undefined'||!kakao.maps){
+  // SDK 미정의 — onerror 또는 timeout 핸들러가 처리
+} else { kakao.maps.load(function(){
+try {
 var container=document.getElementById('map');
 var map=new kakao.maps.Map(container,{center:new kakao.maps.LatLng(CENTER_LAT,CENTER_LNG),level:ZOOM});
 var infowindow=new kakao.maps.InfoWindow({zIndex:1});
@@ -137,7 +170,12 @@ break;
 }
 }
 }
-});
+__mapReady=true;
+__hideStatus();
+} catch(e) {
+  __status('❌ 지도 초기화 오류: '+(e&&e.message?e.message:e),true);
+}
+}); }
 </script>
 </body>
 </html>"""

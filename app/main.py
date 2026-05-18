@@ -42,8 +42,8 @@ def main() -> None:
     radius_m, search_term = render_sidebar(data.suppliers)
 
     st.markdown(
-        "<h1 style='margin-bottom:4px;'>서울 유출지하수 매칭</h1>"
-        "<p style='font-size:14px;color:#666A70;margin-bottom:16px;'>"
+        "<h1>서울 유출지하수 매칭</h1>"
+        "<p style='font-size:14px;color:#666A70;margin-bottom:18px;line-height:1.45;'>"
         "서울시 공공데이터 기반 유출지하수 공급처 · 수요처 매칭 분석</p>",
         unsafe_allow_html=True,
     )
@@ -65,6 +65,10 @@ def main() -> None:
             icon="⚠️",
         )
 
+    st.markdown(
+        "<p class='section-label'>공급-수요 매칭 지도</p>",
+        unsafe_allow_html=True,
+    )
     components.html(
         build_kakao_map_html(
             suppliers=data.suppliers,

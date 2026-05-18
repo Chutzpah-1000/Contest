@@ -431,7 +431,38 @@ uv run streamlit run app/main.py  # 앱 실행
 
 ---
 
-## 최종 점수 (Round 18 기준)
+## Round 19 — kakao_map JS 매직넘버 Python Final 승격 (2026-05-18)
+
+- **Branch**: `agent/round-19-kakao-magic-consts`
+- **Scores (before → after)**: 코드 품질 9 → 9 (유지보수성 ↑), 기타 9 유지
+- **Lowest area**: 코드 품질 — Round 10 에서 도입된 JS 인라인 매직넘버(`FLOW_HIDE_LEVEL=8`, `setTimeout(...,100)`) 가 Python 측에서 불투명. 튜닝 시 JS 본문 검색 필요.
+
+### Planned improvement (후보 풀 D1 소진)
+모듈 상단에 `_JS_FLOW_HIDE_LEVEL: Final[int] = 8`, `_JS_IDLE_THROTTLE_MS: Final[int] = 100` 추가하고 JS 본문에 `__FLOW_HIDE_LEVEL__`/`__IDLE_THROTTLE_MS__` 플레이스홀더 사용. `build_kakao_map_html` 의 `.replace()` 체인에 2개 항목 추가.
+
+### Files changed
+- `app/components/kakao_map.py`
+  - `Final` 임포트 + 2개 상수 (`_JS_FLOW_HIDE_LEVEL`, `_JS_IDLE_THROTTLE_MS`) + 한국어 설명 주석.
+  - JS 인라인 매직넘버 2곳 → `__TOKEN__` 플레이스홀더.
+  - `build_kakao_map_html` `.replace()` 체인에 2개 추가.
+
+### Verification
+- `uv run ruff check .` → All checks passed
+- `uv run ruff format .` → 41 files left unchanged
+- `uv run pyright` → 0 errors, 136 warnings
+- `uv run pytest` → **50 passed** 유지 (Round 12 회귀 테스트 `FLOW_HIDE_LEVEL=8` 토큰 검증 — 치환 결과 동일하게 매칭), coverage 65.62% → **65.67%**
+
+### Commit
+- `refactor(map): JS 매직넘버 FLOW_HIDE_LEVEL·idle throttle 을 Python Final 상수로 승격`
+
+### Notes (다음 라운드 후보 풀 잔여)
+- 완성도 C1·C2·C3
+- 성능 E1 (캐시 키 hash)
+- 다음 라운드 1순위: **C2 H1 spacing 인라인 → 토큰화** (완성도, 미세) — 또는 **C1 모바일 KPI 가독성**.
+
+---
+
+## 최종 점수 (Round 19 기준)
 | 영역 | 점수 |
 |------|------|
 | 기능 완성도 | 9 |

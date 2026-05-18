@@ -28,13 +28,9 @@ def solution_id_for_radius(radius_m: int) -> str:
 
 
 def _filter_by_solution_id(table: pd.DataFrame, solution_id: str) -> pd.DataFrame:
-    ids = string_values(table, ("solution_id",), "")
-    rows = [
-        row
-        for index, row in enumerate(table.to_dict(orient="records"))
-        if ids[index] == solution_id
-    ]
-    return pd.DataFrame(rows, columns=list(table.columns))
+    if "solution_id" not in table.columns:
+        return pd.DataFrame(columns=list(table.columns))
+    return table.loc[table["solution_id"] == solution_id].reset_index(drop=True)
 
 
 def select_solution(

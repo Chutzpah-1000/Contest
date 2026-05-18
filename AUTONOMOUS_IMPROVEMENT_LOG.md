@@ -175,12 +175,48 @@ uv run streamlit run app/main.py  # 앱 실행
 
 ---
 
-## 최종 점수 (Round 11 기준)
+## Round 12 — Kakao 지도 Round 10 성능 회귀 가드 (2026-05-18)
+
+- **Branch**: `agent/round-12-map-regression-test`
+- **Scores (before → after)**:
+  - 기능 완성도: 8 → 8
+  - 사용자 경험: 9 → 9
+  - 안정성: 8 → 9
+  - 성능: 9 → 9
+  - 코드 품질: 9 → 9
+  - 완성도: 9 → 9
+- **Lowest area**: 안정성 — Round 10 의 idle 뷰포트 컬링·rAF DOM 배치·플로우 줌 컷오프가 HTML 템플릿 문자열에 들어가 있는데, 누가 실수로 제거하면 검증 없이 통과. 회귀 가드 0건.
+
+### Planned improvement (후보 풀 A1 소진)
+`tests/test_app.py` 에 `test_kakao_map_html_includes_round10_perf_tokens` 추가 — `build_kakao_map_html()` 결과에 `FLOW_HIDE_LEVEL=8`, `_scheduleCull`, `_cullDemand`, `requestAnimationFrame`, `'idle'` 5개 토큰이 모두 포함되는지 검증.
+
+### Files changed
+- `tests/test_app.py` — 회귀 테스트 1건 추가
+
+### Verification
+- `uv run ruff check --fix .` → All checks passed
+- `uv run ruff format .` → 41 files left unchanged
+- `uv run pyright` → 0 errors, 136 warnings
+- `uv run pytest` → **43 passed** (42 → 43), coverage 65.72% 유지
+
+### Commit
+- `test(kakao_map): Round 10 성능 토큰 회귀 가드 (idle·rAF·flow level cutoff)`
+
+### Notes (다음 라운드 후보 풀 잔여)
+- 안정성 A2·A3 (sidebar 빈 DF, load_app_data FNF — 기존 가드의 회귀 테스트)
+- 기능 완성도 B1·B2·B3 (ⓘ 출처 popover, 라디우스 메타, ETL mtime)
+- 완성도 C1·C2·C3 (모바일 KPI, H1 spacing 토큰, footer)
+- 코드 품질 D1·D2, 성능 E1
+- 다음 라운드 1순위: **B1 ⓘ 출처 popover** (Design.md §5 1급 UX, 기능 완성도 8 → 9 기대)
+
+---
+
+## 최종 점수 (Round 12 기준)
 | 영역 | 점수 |
 |------|------|
 | 기능 완성도 | 8 |
 | 사용자 경험 | 9 |
-| 안정성/버그 | 8 |
+| 안정성/버그 | 9 |
 | 성능 | 9 |
 | 코드 품질 | 9 |
 | 완성도/폴리시 | 9 |

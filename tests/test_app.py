@@ -55,6 +55,29 @@ def test_kakao_map_html_contains_required_elements() -> None:
     assert "Node.prototype.appendChild" in html
 
 
+def test_kakao_map_html_includes_round10_perf_tokens() -> None:
+    """Round 10 성능 개선(idle 뷰포트 컬링·rAF·플로우 줌 컷오프)이 깨지지 않도록 토큰 회귀 가드."""
+    data = load_app_data()
+    selected = select_solution(1000, data.match_solution, data.match_flows, data.epiphany_metrics)
+    html = build_kakao_map_html(
+        suppliers=data.suppliers,
+        parks=data.demand_parks,
+        roads=data.demand_roads,
+        flows=selected.flows,
+        search_term="",
+        js_key="test-key",
+    )
+
+    for token in (
+        "FLOW_HIDE_LEVEL=8",
+        "_scheduleCull",
+        "_cullDemand",
+        "requestAnimationFrame",
+        "'idle'",
+    ):
+        assert token in html, f"missing perf token: {token}"
+
+
 def test_kakao_map_html_centers_on_search_match() -> None:
     data = load_app_data()
     selected = select_solution(1000, data.match_solution, data.match_flows, data.epiphany_metrics)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from html import escape
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 import streamlit as st
 
@@ -12,6 +12,92 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
+_SIDEBAR_CSS: Final[str] = """
+<style>
+[data-testid="stSidebar"] {background:#ffffff;border-right:1px solid #E4E4E0;}
+[data-testid="stSidebarContent"] {padding-top:0 !important;}
+.sb-header {
+    padding:14px 16px 12px;
+    border-bottom:1px solid #E4E4E0;
+    display:flex;align-items:center;gap:10px;
+    margin-bottom:14px;
+}
+.sb-icon {font-size:22px;line-height:1;}
+.sb-title {font-size:14px;font-weight:700;color:#111111;line-height:1.2;}
+.sb-subtitle {font-size:10px;color:#666A70;margin-top:2px;}
+.sb-ctrl-label {
+    font-size:11px;font-weight:600;color:#666A70;
+    text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;
+}
+.building-card {
+    background:#F7F7F5;border:1px solid #E4E4E0;border-radius:8px;
+    padding:16px;margin-top:12px;
+}
+.building-name {font-size:15px;font-weight:700;color:#111111;line-height:1.35;margin-bottom:4px;}
+.building-addr {font-size:12px;color:#666A70;margin-bottom:12px;}
+.discharge-label {font-size:11px;font-weight:600;color:#666A70;text-transform:uppercase;letter-spacing:.04em;}
+.discharge-value {font-size:28px;font-weight:700;color:#1D7F5F;line-height:1.15;margin:2px 0 12px;}
+.discharge-unit {font-size:13px;font-weight:400;color:#666A70;}
+.meta-row {display:flex;gap:16px;margin-top:4px;}
+.meta-block {flex:1;}
+.meta-label {font-size:11px;color:#666A70;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+.meta-value {font-size:13px;font-weight:600;color:#111111;margin-top:2px;}
+.reportable-badge {
+    display:inline-block;padding:2px 8px;border-radius:4px;
+    font-size:11px;font-weight:600;background:#E6F4EE;color:#1D7F5F;
+    margin-top:8px;
+}
+.roi-block {
+    margin-top:14px;padding-top:12px;border-top:1px solid #E4E4E0;
+    display:grid;grid-template-columns:1fr 1fr;gap:12px;
+}
+.roi-label {font-size:11px;color:#666A70;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+.roi-value {font-size:16px;font-weight:700;color:#1D7F5F;margin-top:2px;line-height:1.2;}
+.roi-unit {font-size:11px;font-weight:400;color:#666A70;}
+.roi-caption {font-size:10px;color:#888;margin-top:8px;line-height:1.4;}
+.sb-footer {
+    margin-top:16px;padding-top:12px;border-top:1px solid #E4E4E0;
+    font-size:10px;color:#888;line-height:1.6;
+}
+/* 사이드바 검색 폼 버튼 톤 — Design.md monochrome data-product */
+[data-testid="stSidebar"] [data-testid="stForm"] button {
+    background:#FFFFFF !important;
+    border:1px solid #E4E4E0 !important;
+    color:#111111 !important;
+    font-size:12px !important;
+    font-weight:600 !important;
+    border-radius:6px !important;
+    padding:6px 10px !important;
+    box-shadow:none !important;
+    transition:border-color .12s ease, color .12s ease, background .12s ease;
+}
+[data-testid="stSidebar"] [data-testid="stForm"] button:hover {
+    border-color:#0071E3 !important;
+    color:#0071E3 !important;
+    background:#F5F9FF !important;
+}
+[data-testid="stSidebar"] [data-testid="stForm"] button:focus {
+    outline:none !important;
+    border-color:#0071E3 !important;
+    box-shadow:0 0 0 2px rgba(0,113,227,.18) !important;
+}
+[data-testid="stSidebar"] [data-testid="stForm"] button:active {
+    background:#EAF2FB !important;
+}
+</style>
+"""
+
+_SIDEBAR_HEADER: Final[str] = """
+<div class="sb-header">
+  <span class="sb-icon">&#128167;</span>
+  <div>
+    <div class="sb-title">유출지하수 매칭</div>
+    <div class="sb-subtitle">서울시 공공데이터 분석 플랫폼</div>
+  </div>
+</div>
+"""
+
+
 def render_sidebar(suppliers: pd.DataFrame) -> tuple[int, str]:
     """Render the sidebar with search, radius controls, and a building detail card.
 
@@ -19,90 +105,7 @@ def render_sidebar(suppliers: pd.DataFrame) -> tuple[int, str]:
         Tuple of (selected matching radius in meters, building search term).
     """
     with st.sidebar:
-        st.markdown(
-            """
-            <style>
-            [data-testid="stSidebar"] {background:#ffffff;border-right:1px solid #E4E4E0;}
-            [data-testid="stSidebarContent"] {padding-top:0 !important;}
-            .sb-header {
-                padding:14px 16px 12px;
-                border-bottom:1px solid #E4E4E0;
-                display:flex;align-items:center;gap:10px;
-                margin-bottom:14px;
-            }
-            .sb-icon {font-size:22px;line-height:1;}
-            .sb-title {font-size:14px;font-weight:700;color:#111111;line-height:1.2;}
-            .sb-subtitle {font-size:10px;color:#666A70;margin-top:2px;}
-            .sb-ctrl-label {
-                font-size:11px;font-weight:600;color:#666A70;
-                text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;
-            }
-            .building-card {
-                background:#F7F7F5;border:1px solid #E4E4E0;border-radius:8px;
-                padding:16px;margin-top:12px;
-            }
-            .building-name {font-size:15px;font-weight:700;color:#111111;line-height:1.35;margin-bottom:4px;}
-            .building-addr {font-size:12px;color:#666A70;margin-bottom:12px;}
-            .discharge-label {font-size:11px;font-weight:600;color:#666A70;text-transform:uppercase;letter-spacing:.04em;}
-            .discharge-value {font-size:28px;font-weight:700;color:#1D7F5F;line-height:1.15;margin:2px 0 12px;}
-            .discharge-unit {font-size:13px;font-weight:400;color:#666A70;}
-            .meta-row {display:flex;gap:16px;margin-top:4px;}
-            .meta-block {flex:1;}
-            .meta-label {font-size:11px;color:#666A70;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
-            .meta-value {font-size:13px;font-weight:600;color:#111111;margin-top:2px;}
-            .reportable-badge {
-                display:inline-block;padding:2px 8px;border-radius:4px;
-                font-size:11px;font-weight:600;background:#E6F4EE;color:#1D7F5F;
-                margin-top:8px;
-            }
-            .roi-block {
-                margin-top:14px;padding-top:12px;border-top:1px solid #E4E4E0;
-                display:grid;grid-template-columns:1fr 1fr;gap:12px;
-            }
-            .roi-label {font-size:11px;color:#666A70;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
-            .roi-value {font-size:16px;font-weight:700;color:#1D7F5F;margin-top:2px;line-height:1.2;}
-            .roi-unit {font-size:11px;font-weight:400;color:#666A70;}
-            .roi-caption {font-size:10px;color:#888;margin-top:8px;line-height:1.4;}
-            .sb-footer {
-                margin-top:16px;padding-top:12px;border-top:1px solid #E4E4E0;
-                font-size:10px;color:#888;line-height:1.6;
-            }
-            /* 사이드바 검색 폼 버튼 톤 — Design.md monochrome data-product */
-            [data-testid="stSidebar"] [data-testid="stForm"] button {
-                background:#FFFFFF !important;
-                border:1px solid #E4E4E0 !important;
-                color:#111111 !important;
-                font-size:12px !important;
-                font-weight:600 !important;
-                border-radius:6px !important;
-                padding:6px 10px !important;
-                box-shadow:none !important;
-                transition:border-color .12s ease, color .12s ease, background .12s ease;
-            }
-            [data-testid="stSidebar"] [data-testid="stForm"] button:hover {
-                border-color:#0071E3 !important;
-                color:#0071E3 !important;
-                background:#F5F9FF !important;
-            }
-            [data-testid="stSidebar"] [data-testid="stForm"] button:focus {
-                outline:none !important;
-                border-color:#0071E3 !important;
-                box-shadow:0 0 0 2px rgba(0,113,227,.18) !important;
-            }
-            [data-testid="stSidebar"] [data-testid="stForm"] button:active {
-                background:#EAF2FB !important;
-            }
-            </style>
-            <div class="sb-header">
-              <span class="sb-icon">&#128167;</span>
-              <div>
-                <div class="sb-title">유출지하수 매칭</div>
-                <div class="sb-subtitle">서울시 공공데이터 분석 플랫폼</div>
-              </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        st.markdown(_SIDEBAR_CSS + _SIDEBAR_HEADER, unsafe_allow_html=True)
 
         st.markdown(
             "<p class='sb-ctrl-label'>건물 검색</p>",

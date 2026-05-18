@@ -400,7 +400,38 @@ uv run streamlit run app/main.py  # 앱 실행
 
 ---
 
-## 최종 점수 (Round 17 기준)
+## Round 18 — sidebar 인라인 CSS 모듈상수 추출 (2026-05-18)
+
+- **Branch**: `agent/round-18-sidebar-css-const`
+- **Scores (before → after)**:
+  - 코드 품질: 9 → 9 (가독성 ↑, 동작 변화 0)
+  - 기타 영역 9 유지
+- **Lowest area**: 코드 품질 — `render_sidebar` 본문에 80여 줄짜리 raw HTML/CSS 문자열이 들여쓰기 4단계 안에 박혀 있어 함수 본문 가독성 저하. 진단 시 스타일 변경 위치를 찾기 어려움.
+
+### Planned improvement (후보 풀 D2 소진)
+사이드바 인라인 `<style>...</style>` + `<div class="sb-header">...` 블록을 모듈 상단 `_SIDEBAR_CSS: Final[str]` + `_SIDEBAR_HEADER: Final[str]` 두 상수로 추출. `render_sidebar` 는 `st.markdown(_SIDEBAR_CSS + _SIDEBAR_HEADER, ...)` 한 줄로 축약.
+
+### Files changed
+- `app/components/sidebar.py` — `Final` 임포트, 두 모듈 상수 추가, `render_sidebar` 본문 축약
+
+### Verification
+- `uv run ruff check .` → All checks passed
+- `uv run ruff format .` → 41 files left unchanged
+- `uv run pyright` → 0 errors, 136 warnings
+- `uv run pytest` → **50 passed** 유지, coverage 65.56% → **65.62%**
+
+### Commit
+- `refactor(sidebar): 인라인 CSS·header HTML 을 _SIDEBAR_CSS·_SIDEBAR_HEADER 모듈상수로 추출`
+
+### Notes (다음 라운드 후보 풀 잔여)
+- 완성도 C1·C2·C3
+- 코드 품질 D1 (kakao_map 인라인 매직상수 그룹화)
+- 성능 E1 (캐시 키 hash)
+- 다음 라운드 1순위: **D1 kakao_map 매직 상수 그룹화** — 동일 패턴, 코드 품질, 안전.
+
+---
+
+## 최종 점수 (Round 18 기준)
 | 영역 | 점수 |
 |------|------|
 | 기능 완성도 | 9 |

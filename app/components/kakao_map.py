@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import math
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 import numpy as np
 import streamlit as st
@@ -23,6 +23,12 @@ PARK_AREA_SCALE: float = 200_000.0
 MAX_FLOW_WEIGHT: float = 7.0
 MIN_FLOW_WEIGHT: float = 2.0
 FLOW_TON_SCALE: float = 30.0
+
+# JS-side performance tuning (Round 10): viewport culling on `idle` event.
+#   - FLOW_HIDE_LEVEL: 줌 레벨이 이 값 이상이면 매칭 폴리라인 일괄 숨김 (시 전체 줌아웃 클러터 방지).
+#   - IDLE_THROTTLE_MS: idle 이벤트 후 컬링 실행을 지연시켜 연속 팬·줌 시 작업 폭주 차단.
+_JS_FLOW_HIDE_LEVEL: Final[int] = 8
+_JS_IDLE_THROTTLE_MS: Final[int] = 100
 
 _SUPPLIER_COLS: list[str] = [
     "supplier_id",
@@ -511,7 +517,7 @@ FLOWS.forEach(function(f){
 
 // Viewport culling on idle: keep DOM low while panning at city scale.
 // Suppliers go through MarkerClusterer; we cull parks/roads/flows.
-var FLOW_HIDE_LEVEL=8;
+var FLOW_HIDE_LEVEL=__FLOW_HIDE_LEVEL__;
 var _idleTimer=0;
 function _withinBounds(b,lat,lng){
   var sw=b.getSouthWest(),ne=b.getNorthEast();
@@ -542,7 +548,7 @@ function _cullDemand(){
 }
 function _scheduleCull(){
   if(_idleTimer)clearTimeout(_idleTimer);
-  _idleTimer=setTimeout(function(){_idleTimer=0;_cullDemand();},100);
+  _idleTimer=setTimeout(function(){_idleTimer=0;_cullDemand();},__IDLE_THROTTLE_MS__);
 }
 kakao.maps.event.addListener(_map,'idle',_scheduleCull);
 _cullDemand();
@@ -614,6 +620,8 @@ def build_kakao_map_html(
         .replace("__FLOWS_JSON__", _df_to_json(flows, _FLOW_COLS))
         .replace("__MATCHED_IDS_JSON__", json.dumps(list(matched_ids), ensure_ascii=False))
         .replace("__SEARCH_TERM_JSON__", json.dumps(search_term, ensure_ascii=False))
+        .replace("__FLOW_HIDE_LEVEL__", str(_JS_FLOW_HIDE_LEVEL))
+        .replace("__IDLE_THROTTLE_MS__", str(_JS_IDLE_THROTTLE_MS))
     )
 
 

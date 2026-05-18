@@ -400,7 +400,133 @@ uv run streamlit run app/main.py  # 앱 실행
 
 ---
 
-## 최종 점수 (Round 17 기준)
+## Round 18 — sidebar 인라인 CSS 모듈상수 추출 (2026-05-18)
+
+- **Branch**: `agent/round-18-sidebar-css-const`
+- **Scores (before → after)**:
+  - 코드 품질: 9 → 9 (가독성 ↑, 동작 변화 0)
+  - 기타 영역 9 유지
+- **Lowest area**: 코드 품질 — `render_sidebar` 본문에 80여 줄짜리 raw HTML/CSS 문자열이 들여쓰기 4단계 안에 박혀 있어 함수 본문 가독성 저하. 진단 시 스타일 변경 위치를 찾기 어려움.
+
+### Planned improvement (후보 풀 D2 소진)
+사이드바 인라인 `<style>...</style>` + `<div class="sb-header">...` 블록을 모듈 상단 `_SIDEBAR_CSS: Final[str]` + `_SIDEBAR_HEADER: Final[str]` 두 상수로 추출. `render_sidebar` 는 `st.markdown(_SIDEBAR_CSS + _SIDEBAR_HEADER, ...)` 한 줄로 축약.
+
+### Files changed
+- `app/components/sidebar.py` — `Final` 임포트, 두 모듈 상수 추가, `render_sidebar` 본문 축약
+
+### Verification
+- `uv run ruff check .` → All checks passed
+- `uv run ruff format .` → 41 files left unchanged
+- `uv run pyright` → 0 errors, 136 warnings
+- `uv run pytest` → **50 passed** 유지, coverage 65.56% → **65.62%**
+
+### Commit
+- `refactor(sidebar): 인라인 CSS·header HTML 을 _SIDEBAR_CSS·_SIDEBAR_HEADER 모듈상수로 추출`
+
+### Notes (다음 라운드 후보 풀 잔여)
+- 완성도 C1·C2·C3
+- 코드 품질 D1 (kakao_map 인라인 매직상수 그룹화)
+- 성능 E1 (캐시 키 hash)
+- 다음 라운드 1순위: **D1 kakao_map 매직 상수 그룹화** — 동일 패턴, 코드 품질, 안전.
+
+---
+
+## Round 19 — kakao_map JS 매직넘버 Python Final 승격 (2026-05-18)
+
+- **Branch**: `agent/round-19-kakao-magic-consts`
+- **Scores (before → after)**: 코드 품질 9 → 9 (유지보수성 ↑), 기타 9 유지
+- **Lowest area**: 코드 품질 — Round 10 에서 도입된 JS 인라인 매직넘버(`FLOW_HIDE_LEVEL=8`, `setTimeout(...,100)`) 가 Python 측에서 불투명. 튜닝 시 JS 본문 검색 필요.
+
+### Planned improvement (후보 풀 D1 소진)
+모듈 상단에 `_JS_FLOW_HIDE_LEVEL: Final[int] = 8`, `_JS_IDLE_THROTTLE_MS: Final[int] = 100` 추가하고 JS 본문에 `__FLOW_HIDE_LEVEL__`/`__IDLE_THROTTLE_MS__` 플레이스홀더 사용. `build_kakao_map_html` 의 `.replace()` 체인에 2개 항목 추가.
+
+### Files changed
+- `app/components/kakao_map.py`
+  - `Final` 임포트 + 2개 상수 (`_JS_FLOW_HIDE_LEVEL`, `_JS_IDLE_THROTTLE_MS`) + 한국어 설명 주석.
+  - JS 인라인 매직넘버 2곳 → `__TOKEN__` 플레이스홀더.
+  - `build_kakao_map_html` `.replace()` 체인에 2개 추가.
+
+### Verification
+- `uv run ruff check .` → All checks passed
+- `uv run ruff format .` → 41 files left unchanged
+- `uv run pyright` → 0 errors, 136 warnings
+- `uv run pytest` → **50 passed** 유지 (Round 12 회귀 테스트 `FLOW_HIDE_LEVEL=8` 토큰 검증 — 치환 결과 동일하게 매칭), coverage 65.62% → **65.67%**
+
+### Commit
+- `refactor(map): JS 매직넘버 FLOW_HIDE_LEVEL·idle throttle 을 Python Final 상수로 승격`
+
+### Notes (다음 라운드 후보 풀 잔여)
+- 완성도 C1·C2·C3
+- 성능 E1 (캐시 키 hash)
+- 다음 라운드 1순위: **C2 H1 spacing 인라인 → 토큰화** (완성도, 미세) — 또는 **C1 모바일 KPI 가독성**.
+
+---
+
+## Round 20 — page-subtitle 인라인 style → 디자인 토큰 (2026-05-18)
+
+- **Branch**: `agent/round-20-h1-spacing-token`
+- **Scores (before → after)**: 코드 품질 9 → 9 / 완성도 9 → 9 (인라인 스타일 1건 제거)
+- **Lowest area**: 코드 품질·완성도 동률. `app/main.py:46` H1 부제에 `style='font-size:14px;color:#666A70;margin-bottom:18px;line-height:1.45;'` 인라인 — Design.md 토큰(`--color-muted` 등) 우회.
+
+### Planned improvement (후보 풀 C2 소진 — 본 세션 마지막 라운드)
+- `app/main.py`: 인라인 `<p style="...">` → `<p class='page-subtitle'>`.
+- `app/components/cards.py` `_DESIGN_CSS`: `.page-subtitle` 클래스 정의 (color는 `--color-muted` 토큰 사용).
+
+### Files changed
+- `app/main.py` — 1줄 인라인 style 제거 → 클래스 사용
+- `app/components/cards.py` — `.page-subtitle` CSS 추가 (4줄)
+
+### Verification
+- `uv run ruff check .` → All checks passed
+- `uv run ruff format .` → 41 files left unchanged
+- `uv run pyright` → 0 errors, 136 warnings
+- `uv run pytest` → **50 passed** 유지, coverage 65.67% 유지
+
+### Commit
+- `polish(ui): H1 부제 인라인 style → page-subtitle 클래스로 토큰화`
+
+### Notes — 세션 종료 핸드오프
+- 이번 세션 실행 라운드: **Round 11 → Round 20 (10 라운드)**. AGENTS.md §11 의 한 라운드 20분 규칙 준수, 모든 라운드 검증 4종 통과 후 커밋.
+- 모든 영역 9점 동률 도달. 다음 세션은 **10점 진입**을 목표로 큰 단위 검증(시연 환경 e2e, 실 데이터 갱신, GitHub PR 머지 흐름)이 적합.
+- 후보 풀 잔여:
+  - 완성도 **C1**(모바일 KPI 가독성), **C3**(footer GitHub 링크 — 사용자 컨펌 필요)
+  - 성능 **E1**(캐시 키 hash — 캐시 무효화 리스크, 사용자 컨펌 권장)
+- 후속 에이전트는 AGENTS.md §11.1 체크리스트 따라 본 마지막 라운드 엔트리부터 읽고 시작할 것. 모든 round-NN 브랜치는 origin 에 push 되었고 CI 그린 확인.
+
+---
+
+## Round 21 — 사이드바 검색 폼 레이아웃·input border 가시화 (사용자 피드백, 2026-05-18)
+
+- **Branch**: `agent/round-21-search-form-layout-fix`
+- **Lowest area**: 사용자 경험 — 로컬 시연 중 사용자가 직접 지적. (1) 검색·초기화 버튼이 3:1 비율로 좌측 치우침, (2) text_input border 가 Streamlit 기본 회색이라 hover 전까지 폼 경계가 모호.
+- **Source**: 자율 후보 풀이 아니라 **사용자 명시 피드백** 기반.
+
+### Planned improvement
+- 버튼 column 비율 `[3, 1]` → `st.columns(2)` (정확히 1:1).
+- `_SIDEBAR_CSS` 에 input border 규칙 추가: `[data-testid="stSidebar"] [data-testid="stTextInput"]` 스코프에서 1px solid `#111111`, focus 시 `#0071E3` + 2px ring.
+
+### Files changed
+- `app/components/sidebar.py`
+  - `_SIDEBAR_CSS` 에 text_input border CSS 추가 (baseweb + 일반 selector 양쪽 커버).
+  - `_render_search_form` 의 `st.columns([3, 1])` → `st.columns(2)`.
+
+### Verification
+- `uv run ruff check .` → All checks passed
+- `uv run ruff format .` → 41 files left unchanged
+- `uv run pyright` → 0 errors, 136 warnings
+- `uv run pytest` → **50 passed** 유지, coverage 65.67% 유지
+
+### Commit
+- `fix(sidebar): 검색·초기화 버튼 1:1 비율 + input border 검정 가시화 (사용자 피드백)`
+
+### Notes
+- Round 11 에서 도입한 사이드바 폼 톤 후속 폴리시.
+- Streamlit 의 text_input DOM 은 버전마다 wrapper 구조가 약간 다름 → `div[data-baseweb="input"]` 과 `> div > div` 두 selector 를 둘 다 사용해 호환성 확보.
+- Round 20 종료 직후 사용자 피드백 발생 → Round 21 로 흡수. 다음 라운드는 사용자 후속 피드백 또는 후보 풀 잔여(C1·C3·E1).
+
+---
+
+## 최종 점수 (Round 21 기준)
 | 영역 | 점수 |
 |------|------|
 | 기능 완성도 | 9 |

@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "agent/**"
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: lint + type + test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Install Python (via uv)
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Ruff (lint)
+        id: ruff_check
+        run: uv run ruff check .
+
+      - name: Ruff (format check)
+        id: ruff_format
+        run: uv run ruff format --check .
+
+      - name: Pyright (strict)
+        id: pyright
+        run: uv run pyright
+
+      - name: Pytest (coverage ≥60%)
+        id: pytest
+        run: uv run pytest --cov-fail-under=60
+
+      - name: Notify Slack on failure
+        if: ${{ failure() && env.SLACK_WEBHOOK_URL != '' }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ACTOR: ${{ github.actor }}
+          STEPS_ruff_check_OUTCOME: ${{ steps.ruff_check.outcome }}
+          STEPS_ruff_format_OUTCOME: ${{ steps.ruff_format.outcome }}
+          STEPS_pyright_OUTCOME: ${{ steps.pyright.outcome }}
+          STEPS_pytest_OUTCOME: ${{ steps.pytest.outcome }}
+        run: |
+          set -euo pipefail
+          failed_steps=""
+          for step in ruff_check ruff_format pyright pytest; do
+            outcome_var="STEPS_${step}_OUTCOME"
+            outcome="${!outcome_var:-}"
+            if [ "$outcome" = "failure" ]; then
+              failed_steps="${failed_steps} ${step}"
+            fi
+          done
+          if [ -z "$failed_steps" ]; then
+            failed_steps=" (unknown step)"
+          fi
+          payload=$(printf '{"text":":x: CI failed on `%s@%s` by %s\\n• failed:%s\\n• commit: `%s`\\n• run: %s"}' \
+            "$REPO" "$BRANCH" "$ACTOR" "$failed_steps" "$SHA" "$RUN_URL")
+          curl -sS -X POST -H "Content-Type: application/json" --data "$payload" "$SLACK_WEBHOOK_URL"

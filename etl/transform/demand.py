@@ -8,6 +8,7 @@ from etl.transform.normalize import (
     fill_missing_seoul_coordinates,
     normalize_year_month_values,
     numeric_values,
+    permissive_numeric_values,
     string_values,
     validate_seoul_bbox,
 )
@@ -30,12 +31,14 @@ def build_demand_parks(parks: pd.DataFrame) -> pd.DataFrame:
         Park demand table following the silver schema.
     """
     latitudes, longitudes = fill_missing_seoul_coordinates(
-        numeric_values(parks, ("latitude", "lat", "위도"), default=float("nan")),
-        numeric_values(parks, ("longitude", "lng", "lon", "경도"), default=float("nan")),
+        numeric_values(parks, ("latitude", "lat", "위도", "Y좌표(WGS84)"), default=float("nan")),
+        numeric_values(
+            parks, ("longitude", "lng", "lon", "경도", "X좌표(WGS84)"), default=float("nan")
+        ),
     )
     names = string_values(parks, ("name", "park_name", "공원명"), "Unknown park")
-    districts = string_values(parks, ("district", "자치구"), "Seoul")
-    areas = numeric_values(parks, ("area_m2", "area", "면적"), default=0.0)
+    districts = string_values(parks, ("district", "자치구", "지역"), "Seoul")
+    areas = permissive_numeric_values(parks, ("area_m2", "area", "면적"), default=0.0)
     vegetation = [
         value.lower()
         for value in string_values(parks, ("veg_type", "vegetation", "식재유형"), "mixed")

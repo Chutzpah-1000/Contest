@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 import streamlit as st
 
+from app.services.data import last_data_refresh
 from app.services.roi import building_roi
 
 if TYPE_CHECKING:
@@ -66,6 +67,31 @@ def render_sidebar(suppliers: pd.DataFrame) -> tuple[int, str]:
                 margin-top:16px;padding-top:12px;border-top:1px solid #E4E4E0;
                 font-size:10px;color:#888;line-height:1.6;
             }
+            /* 사이드바 검색 폼 버튼 톤 — Design.md monochrome data-product */
+            [data-testid="stSidebar"] [data-testid="stForm"] button {
+                background:#FFFFFF !important;
+                border:1px solid #E4E4E0 !important;
+                color:#111111 !important;
+                font-size:12px !important;
+                font-weight:600 !important;
+                border-radius:6px !important;
+                padding:6px 10px !important;
+                box-shadow:none !important;
+                transition:border-color .12s ease, color .12s ease, background .12s ease;
+            }
+            [data-testid="stSidebar"] [data-testid="stForm"] button:hover {
+                border-color:#0071E3 !important;
+                color:#0071E3 !important;
+                background:#F5F9FF !important;
+            }
+            [data-testid="stSidebar"] [data-testid="stForm"] button:focus {
+                outline:none !important;
+                border-color:#0071E3 !important;
+                box-shadow:0 0 0 2px rgba(0,113,227,.18) !important;
+            }
+            [data-testid="stSidebar"] [data-testid="stForm"] button:active {
+                background:#EAF2FB !important;
+            }
             </style>
             <div class="sb-header">
               <span class="sb-icon">&#128167;</span>
@@ -82,11 +108,7 @@ def render_sidebar(suppliers: pd.DataFrame) -> tuple[int, str]:
             "<p class='sb-ctrl-label'>건물 검색</p>",
             unsafe_allow_html=True,
         )
-        search_term: str = st.text_input(
-            "건물 검색",
-            placeholder="예: 서울 광역자원순환센터",
-            label_visibility="collapsed",
-        )
+        search_term = _render_search_form()
 
         matched = _find_building(suppliers, search_term)
         if matched is not None:
@@ -109,15 +131,72 @@ def render_sidebar(suppliers: pd.DataFrame) -> tuple[int, str]:
             label_visibility="collapsed",
         )  # type: ignore[assignment]  # st.radio returns Any; guaranteed int from options list
 
+        refreshed_at = last_data_refresh()
+        refresh_line = (
+            f"데이터 갱신: {refreshed_at.strftime('%Y-%m-%d %H:%M')} KST<br>"
+            if refreshed_at is not None
+            else ""
+        )
         st.markdown(
-            "<div class='sb-footer'>"
-            "서울 열린데이터광장 · 기상청 ASOS<br>"
-            "2026 서울시 빅데이터 경진대회 창업 부문"
-            "</div>",
+            f"<div class='sb-footer'>"
+            f"{refresh_line}"
+            f"서울 열린데이터광장 · 기상청 ASOS<br>"
+            f"2026 서울시 빅데이터 경진대회 창업 부문"
+            f"</div>",
             unsafe_allow_html=True,
         )
 
         return radius_m, search_term
+
+
+_SEARCH_APPLIED_KEY: str = "sidebar_search_applied"
+
+
+def resolve_search_state(*, raw: str, submitted: bool, cleared: bool, current_applied: str) -> str:
+    """Compute the next applied search term given form state.
+
+    Args:
+        raw: Latest text_input value.
+        submitted: True if the "검색" submit button fired this rerun.
+        cleared: True if the "초기화" submit button fired this rerun.
+        current_applied: Previously applied search term (from session state).
+
+    Returns:
+        The search term to apply (and persist) for this rerun.
+    """
+    if cleared:
+        return ""
+    if submitted:
+        return raw
+    return current_applied
+
+
+def _render_search_form() -> str:
+    """Render the building search form with explicit submit to avoid per-keystroke reruns.
+
+    Returns:
+        The applied search term (only updates on form submit / Enter).
+    """
+    applied: str = st.session_state.get(_SEARCH_APPLIED_KEY, "")
+    with st.form("sidebar_building_search", clear_on_submit=False, border=False):
+        raw: str = st.text_input(
+            "건물 검색",
+            value=applied,
+            placeholder="건물명으로 검색 (예: Heliocity)",
+            label_visibility="collapsed",
+            key="sidebar_search_raw",
+        )
+        cols = st.columns([3, 1])
+        with cols[0]:
+            submitted = st.form_submit_button("검색", use_container_width=True)
+        with cols[1]:
+            cleared = st.form_submit_button("초기화", use_container_width=True)
+    next_applied = resolve_search_state(
+        raw=raw, submitted=submitted, cleared=cleared, current_applied=applied
+    )
+    if next_applied != applied:
+        st.session_state[_SEARCH_APPLIED_KEY] = next_applied
+    return next_applied
 
 
 def _find_building(suppliers: pd.DataFrame, search_term: str) -> dict[str, object] | None:

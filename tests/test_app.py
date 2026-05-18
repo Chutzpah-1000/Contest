@@ -3,9 +3,10 @@ from __future__ import annotations
 import math
 
 import pandas as pd
+import pytest
 
 from app.components.kakao_map import build_kakao_map_html
-from app.services.data import load_app_data
+from app.services.data import KST, last_data_refresh, load_app_data
 from app.services.matching import (
     _filter_by_solution_id,
     metric_value,
@@ -53,6 +54,29 @@ def test_kakao_map_html_contains_required_elements() -> None:
     assert "SUPPLIERS" in html
     assert "kakao.maps.Map" in html
     assert "Node.prototype.appendChild" in html
+
+
+def test_kakao_map_html_includes_round10_perf_tokens() -> None:
+    """Round 10 성능 개선(idle 뷰포트 컬링·rAF·플로우 줌 컷오프)이 깨지지 않도록 토큰 회귀 가드."""
+    data = load_app_data()
+    selected = select_solution(1000, data.match_solution, data.match_flows, data.epiphany_metrics)
+    html = build_kakao_map_html(
+        suppliers=data.suppliers,
+        parks=data.demand_parks,
+        roads=data.demand_roads,
+        flows=selected.flows,
+        search_term="",
+        js_key="test-key",
+    )
+
+    for token in (
+        "FLOW_HIDE_LEVEL=8",
+        "_scheduleCull",
+        "_cullDemand",
+        "requestAnimationFrame",
+        "'idle'",
+    ):
+        assert token in html, f"missing perf token: {token}"
 
 
 def test_kakao_map_html_centers_on_search_match() -> None:
@@ -109,6 +133,28 @@ def test_metric_value_nan_returns_zero() -> None:
         {"metric_name": ["total_discharge_ton_day"], "metric_value": [float("nan")]}
     )
     assert metric_value(metrics, "total_discharge_ton_day") == 0.0
+
+
+def test_load_app_data_raises_filenotfound_for_missing_data_dir(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """`app/main.py` 의 FileNotFoundError 분기 가드용 회귀 테스트."""
+    with pytest.raises(FileNotFoundError):
+        load_app_data(str(tmp_path / "nonexistent"))
+
+
+def test_last_data_refresh_returns_kst_datetime(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    silver = tmp_path / "silver"
+    silver.mkdir()
+    p = silver / "suppliers.parquet"
+    p.write_bytes(b"\x00")
+    result = last_data_refresh(str(tmp_path))
+    assert result is not None
+    assert result.tzinfo == KST
+
+
+def test_last_data_refresh_returns_none_when_no_parquet(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    (tmp_path / "silver").mkdir()
+    (tmp_path / "gold").mkdir()
+    assert last_data_refresh(str(tmp_path)) is None
 
 
 def test_metric_value_returns_correct_float() -> None:

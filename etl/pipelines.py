@@ -21,7 +21,7 @@ from etl.paths import (
     GOLD_DIR,
     SILVER_DIR,
 )
-from etl.sample_data import write_demo_bronze_tables
+from etl.sample_data import build_demo_bronze_tables, write_demo_bronze_tables
 from etl.transform.demand import (
     build_crop_coefficients,
     build_demand_parks,
@@ -77,17 +77,21 @@ def run_extract(data_dir: Path = DATA_DIR, *, demo: bool = False) -> list[Path]:
 def run_transform(data_dir: Path = DATA_DIR) -> list[Path]:
     """Run bronze-to-silver transformations.
 
+    Real bronze CSVs are used when present; missing ones fall back to sample data so
+    the Streamlit demo can run on a partial dataset.
+
     Returns:
         Paths written to the silver directory.
     """
     bronze_dir = data_dir / BRONZE_DIR.name
     silver_dir = data_dir / SILVER_DIR.name
-    groundwater = read_csv_table(_required_file(bronze_dir / BRONZE_GROUNDWATER))
-    buildings = read_csv_table(_required_file(bronze_dir / BRONZE_BUILDINGS))
-    parks = read_csv_table(_required_file(bronze_dir / BRONZE_PARKS))
-    roads = read_csv_table(_required_file(bronze_dir / BRONZE_ROADS))
-    asos = read_csv_table(_required_file(bronze_dir / BRONZE_ASOS))
-    spei = read_csv_table(_required_file(bronze_dir / BRONZE_SPEI))
+    demo_tables = build_demo_bronze_tables()
+    groundwater = _load_or_demo(bronze_dir, BRONZE_GROUNDWATER, demo_tables)
+    buildings = _load_or_demo(bronze_dir, BRONZE_BUILDINGS, demo_tables)
+    parks = _load_or_demo(bronze_dir, BRONZE_PARKS, demo_tables)
+    roads = _load_or_demo(bronze_dir, BRONZE_ROADS, demo_tables)
+    asos = _load_or_demo(bronze_dir, BRONZE_ASOS, demo_tables)
+    spei = _load_or_demo(bronze_dir, BRONZE_SPEI, demo_tables)
 
     suppliers = build_suppliers(groundwater, buildings)
     outputs = {
@@ -238,10 +242,16 @@ def _required_env(
     raise ValueError(f"Environment variable {name} is required.")
 
 
-def _required_file(path: Path) -> Path:
+def _load_or_demo(
+    bronze_dir: Path,
+    filename: str,
+    demo_tables: dict[str, pd.DataFrame],
+) -> pd.DataFrame:
+    """Return a bronze CSV table or its demo fallback when the file is absent."""
+    path = bronze_dir / filename
     if path.exists():
-        return path
-    raise FileNotFoundError(f"Missing bronze input: {path}")
+        return read_csv_table(path)
+    return demo_tables[filename]
 
 
 def _read_dotenv(path: Path) -> dict[str, str]:

@@ -184,3 +184,66 @@ from etl.transform import normalize_supplier
 | 버전 | 날짜       | 변경                                                         |
 | ---- | ---------- | ------------------------------------------------------------ |
 | 0.1  | 2026-05-10 | 초안. Ruff(strictest) + Pyright(strict) + uv + pre-commit 정의 |
+| 0.2  | 2026-05-18 | §11 자율 개선 핸드오프 + GitHub Actions CI 명세 추가         |
+
+---
+
+## 11. 자율 개선 작업 핸드오프 (필수)
+
+이 레포는 **사후 폴리시 단계**에서 자율 개선 루프(Codex CLI · Claude Code · Cursor 등)를 돈다. 새 에이전트가 들어왔을 때 작업 일관성·맥락 단절을 막기 위한 안전장치를 정의한다.
+
+### 11.1 작업 시작 전 체크리스트
+
+1. `AUTONOMOUS_IMPROVEMENT_LOG.md` 의 **마지막 라운드 엔트리**를 읽어 다음을 확인:
+   - 현재 라운드 번호 (다음 라운드 = 마지막 라운드 + 1)
+   - 6개 영역 점수표 (기능·UX·안정성·성능·코드품질·완성도)
+   - 직전 라운드의 변경 파일·검증 결과·`Notes`(다음 라운드 후보)
+2. `git log --oneline -20` 으로 최근 커밋 흐름과 활성 `agent/round-*` 브랜치를 파악.
+3. `git status` 로 uncommitted 변경이 있는지 확인. 있으면 **사용자 작업으로 간주**하고 절대 되돌리지 말 것. 의도가 불명확하면 사용자에게 보고하고 답을 기다림.
+
+### 11.2 라운드 진행 규칙
+
+- 한 라운드는 **가장 낮은 점수 영역 1개**를 골라 **하나의 작은 개선**만. 대규모 리팩터링·범위 확장 금지.
+- 라운드 브랜치명: `agent/round-N-[short-topic]` (예: `agent/round-10-map-perf`).
+- 커밋 메시지: `improve:` / `fix:` / `polish:` / `test:` / `docs:` / `chore:` 중 하나, 한 줄 요약.
+- 검증 4종(`ruff check` · `ruff format --check` · `pyright` · `pytest`) 모두 통과한 뒤에만 커밋. `--no-verify` 금지.
+- 한 라운드는 가능하면 20분 이내. 같은 종류 에러가 2번 반복되면 작업 중단하고 다음 후보로 넘기거나 사용자에게 보고.
+
+### 11.3 라운드 결과 기록 (필수)
+
+`AUTONOMOUS_IMPROVEMENT_LOG.md` 끝에 다음 형식으로 append:
+
+```
+## Round N
+
+- Scores (before → after):
+  - 기능 완성도: X → Y
+  - 사용자 경험: X → Y
+  - 안정성: X → Y
+  - 성능: X → Y
+  - 코드 품질: X → Y
+  - 완성도: X → Y
+- Lowest area: <영역명>
+- Planned improvement: <한 줄>
+- Files changed: <목록>
+- Verification: ruff/pyright/pytest 결과 + 수동 측정치
+- Commit: <메시지>
+- Notes: <다음 라운드 후보·관찰점>
+```
+
+### 11.4 CI/GitHub Actions
+
+- `.github/workflows/ci.yml` 이 push/PR마다 다음을 검증한다.
+  1. `uv sync --frozen`
+  2. `uv run ruff check .`
+  3. `uv run ruff format --check .`
+  4. `uv run pyright`
+  5. `uv run pytest --cov-fail-under=60`
+- 실패 시 `secrets.SLACK_WEBHOOK_URL` 이 설정돼 있으면 Slack 채널로 실패 단계 + 커밋 SHA + run URL 알림. 미설정 시 단계는 noop 으로 통과.
+- 사용자 액션 (1회): GitHub Repo → Settings → Secrets and variables → Actions → New repository secret → 이름 `SLACK_WEBHOOK_URL`, 값은 Slack Incoming Webhook URL.
+
+### 11.5 PR 운영
+
+- 라운드별 브랜치를 `agent/round-N-...` 로 push 한 뒤 PR 생성 또는 기존 자율 개선 PR에 커밋 추가.
+- PR 본문에는 Round N 로그 엔트리 그대로 + 전/후 측정치(가능한 경우) 포함.
+- CI 실패 시 1회만 fix 재시도. 같은 에러 반복이면 중단·보고.

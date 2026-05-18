@@ -87,12 +87,325 @@ uv run streamlit run app/main.py  # 앱 실행
 - **Branch**: `agent/round-9-panel-stats`
 - 지도 패널에 발생량 합계·매칭 건수 통계 바 추가
 
-## 최종 점수 (Round 9 기준)
+## Round 10 — Kakao 지도 검색·줌 성능 (2026-05-18)
+
+- **Branch**: `agent/round-10-map-perf`
+- **Scores (before → after)**:
+  - 기능 완성도: 8 → 8
+  - 사용자 경험: 8 → 9
+  - 안정성: 8 → 8
+  - 성능: 8 → 9
+  - 코드 품질: 9 → 9
+  - 완성도: 8 → 8
+- **Lowest area**: 성능 — 사이드바 검색 키스트로크 단위 Streamlit rerun + iframe 통째 재주입, 지도 줌/팬 시 모든 마커·폴리라인 상시 렌더링.
+
+### Planned improvement
+사용자가 명시한 두 가지 카카오지도 UX 문제(검색 딜레이, 줌/팬 렉)를 풀기 위한 점진 개선.
+
+### Files changed
+- `app/components/sidebar.py` — 검색 입력을 `st.form` 으로 감싸 명시적 제출(`검색`/`초기화` 버튼)에만 rerun 발생. 순수 상태 전이 함수 `resolve_search_state()` 분리.
+- `app/components/kakao_map.py`
+  - `@st.cache_data(show_spinner=False, max_entries=16)` 로 `build_kakao_map_html` 결과 캐싱 → 동일 (suppliers/parks/roads/flows/search_term/js_key) 입력에 대해 JSON 직렬화·HTML 빌드 스킵.
+  - `kakao.maps.event.addListener(_map, 'idle', ...)` 에 100ms `setTimeout` 쓰로틀 부착, `_map.getBounds()` 밖의 park/road 마커와 flow 폴리라인을 `setMap(null)` 토글 → 줌·팬 시 DOM 부하 감소.
+  - `level >= 8` 일 때 flow 폴리라인 일괄 숨김 → 시 전체 줌아웃에서 폴리라인 클러터 제거.
+  - `nameLower[]` 사전 캐시로 검색 시 `(s.name||'').toLowerCase()` 매 반복 제거.
+  - `_applyFilter()` DOM display 변경을 `requestAnimationFrame` 으로 묶어 layout thrash 완화.
+- `tests/test_sidebar_search.py` — `resolve_search_state()` 상태 전이 5건 테스트 추가 (idle/submit/clear/clear-over-submit/empty).
+
+### Verification
+- `uv run ruff check .` → All checks passed
+- `uv run ruff format --check .` → 41 files already formatted
+- `uv run pyright` → 0 errors, 136 warnings (baseline 그대로)
+- `uv run pytest` → 41 passed (36 → 41), coverage 64.68% → **65.00%**
+
+### Manual UX 측정 (수동, 사용자 환경에서 검증 필요)
+- 검색: 종전 키스트로크마다 iframe 재주입 → form 도입 후 제출 시 1회만. 캐시 적중 시 동일 검색어 재제출은 HTML 빌드 0회.
+- 줌/팬: idle 100ms 후 bounds 밖 마커 setMap(null). 시 전체 줌아웃 시 flow 폴리라인 0개 표시.
+- 필터 탭 토글: rAF로 DOM display 배치 → 클러스터 rebuild 1회.
+
+### Commit
+- `improve(map): 검색 폼 디바운스·HTML 캐싱·idle 뷰포트 컬링으로 Kakao 지도 체감 성능 개선`
+
+### Notes (다음 라운드 후보)
+- 사이드바에 자동완성 드롭다운 (form 도입으로 한 스텝 미스가 됨 — Phase 2 가치).
+- ⓘ 출처 popover (Design.md §5 1급 UX 미적용 영역).
+- FR-02 LightGBM 30-day 예측 데모 스텁 (Phase 2 우선이지만 시연 와우 포인트 가능).
+- KPI 카드 hover 시 dataset 출처·formula 표시 (Design.md §5).
+
+---
+
+## Round 11 — 사이드바 검색 폼 폴리시 (2026-05-18)
+
+- **Branch**: `agent/round-11-sidebar-polish`
+- **Scores (before → after)**:
+  - 기능 완성도: 8 → 8
+  - 사용자 경험: 9 → 9
+  - 안정성: 8 → 8
+  - 성능: 9 → 9
+  - 코드 품질: 9 → 9
+  - 완성도: 8 → 9
+- **Lowest area**: 완성도 — `st.form_submit_button` 두 개가 Streamlit 기본 빨강 톤이라 Design.md §3 monochrome 톤과 어색. placeholder 도 프롬프트 명시 문구 미반영.
+
+### Planned improvement
+프롬프트 §76-78 "먼저 할 일" 잔여 항목(검색·초기화 버튼 디자인, placeholder Heliocity 변경, 한국어 검색 가능) 흡수.
+
+### Files changed
+- `app/components/sidebar.py`
+  - 사이드바 폼 버튼 톤 CSS 추가: 흰 배경·1px border·`#0071E3` hover/focus·focus ring (사이드바 스코프 `[data-testid="stSidebar"] [data-testid="stForm"] button`)
+  - placeholder `"예: 서울 광역자원순환센터"` → `"건물명으로 검색 (예: Heliocity)"`
+- `tests/test_sidebar_search.py`
+  - `_find_building()` 한국어 부분일치 회귀 테스트 추가 (`"헬리오"` → "강남 헬리오시티")
+  - import: `pandas`, `_find_building`
+
+### Verification
+- `uv run ruff check --fix .` → All checks passed
+- `uv run ruff format .` → 41 files left unchanged
+- `uv run pyright` → 0 errors, 136 warnings (baseline 그대로)
+- `uv run pytest` → **42 passed** (41 → 42), coverage 65.00% → **65.72%**
+
+### Commit
+- `polish(sidebar): 검색 폼 버튼 톤·placeholder + 한국어 검색 테스트`
+
+### Notes (다음 라운드 후보 풀)
+- 안정성 후보 A1·A2·A3 (kakao_map 회귀 테스트, sidebar 빈 DF 가드, load_app_data FNF 가드)
+- 기능 완성도 B1 (ⓘ 출처 popover) — Design.md §5 1급 UX
+- 완성도 C1·C2·C3 (모바일 KPI 가독성, H1 spacing 토큰, footer GitHub 링크)
+- 코드 품질 D1·D2 (kakao_map 매직상수·sidebar CSS 모듈상수)
+- 다음 라운드 후보 1순위: **A1 kakao_map 회귀 테스트** (안정성·코드품질 동시 영향)
+
+---
+
+## Round 12 — Kakao 지도 Round 10 성능 회귀 가드 (2026-05-18)
+
+- **Branch**: `agent/round-12-map-regression-test`
+- **Scores (before → after)**:
+  - 기능 완성도: 8 → 8
+  - 사용자 경험: 9 → 9
+  - 안정성: 8 → 9
+  - 성능: 9 → 9
+  - 코드 품질: 9 → 9
+  - 완성도: 9 → 9
+- **Lowest area**: 안정성 — Round 10 의 idle 뷰포트 컬링·rAF DOM 배치·플로우 줌 컷오프가 HTML 템플릿 문자열에 들어가 있는데, 누가 실수로 제거하면 검증 없이 통과. 회귀 가드 0건.
+
+### Planned improvement (후보 풀 A1 소진)
+`tests/test_app.py` 에 `test_kakao_map_html_includes_round10_perf_tokens` 추가 — `build_kakao_map_html()` 결과에 `FLOW_HIDE_LEVEL=8`, `_scheduleCull`, `_cullDemand`, `requestAnimationFrame`, `'idle'` 5개 토큰이 모두 포함되는지 검증.
+
+### Files changed
+- `tests/test_app.py` — 회귀 테스트 1건 추가
+
+### Verification
+- `uv run ruff check --fix .` → All checks passed
+- `uv run ruff format .` → 41 files left unchanged
+- `uv run pyright` → 0 errors, 136 warnings
+- `uv run pytest` → **43 passed** (42 → 43), coverage 65.72% 유지
+
+### Commit
+- `test(kakao_map): Round 10 성능 토큰 회귀 가드 (idle·rAF·flow level cutoff)`
+
+### Notes (다음 라운드 후보 풀 잔여)
+- 안정성 A2·A3 (sidebar 빈 DF, load_app_data FNF — 기존 가드의 회귀 테스트)
+- 기능 완성도 B1·B2·B3 (ⓘ 출처 popover, 라디우스 메타, ETL mtime)
+- 완성도 C1·C2·C3 (모바일 KPI, H1 spacing 토큰, footer)
+- 코드 품질 D1·D2, 성능 E1
+- 다음 라운드 1순위: **B1 ⓘ 출처 popover** (Design.md §5 1급 UX, 기능 완성도 8 → 9 기대)
+
+---
+
+## Round 13 — KPI 카드 ⓘ 출처 popover (2026-05-18)
+
+- **Branch**: `agent/round-13-kpi-source-popover`
+- **Scores (before → after)**:
+  - 기능 완성도: 8 → 9
+  - 사용자 경험: 9 → 9
+  - 안정성: 9 → 9
+  - 성능: 9 → 9
+  - 코드 품질: 9 → 9
+  - 완성도: 9 → 9
+- **Lowest area**: 기능 완성도 — KPI 4종 숫자만 노출, 데이터셋·계산식·갱신주기가 caption 한 줄로만 표현. Design.md §5 "모든 숫자는 단위+출처를 1급 UX" 미충족.
+
+### Planned improvement (후보 풀 B1 소진)
+4개 epiphany KPI 카드 caption 영역을 `<details><summary>` 디스클로저로 교체. summary 에 ⓘ 아이콘 + 기존 caption 표시, 펼치면 데이터셋 · 계산식 · 갱신주기 3행이 노출.
+
+### Files changed
+- `app/components/cards.py`
+  - `NamedTuple _KpiSource(caption, dataset, formula, refresh)` 도입.
+  - `_KPI_CAPTIONS` 4개 문자열을 `_KPI_SOURCES: tuple[_KpiSource, ...]` 로 확장 (서울 열린데이터광장·KEPCO 배출계수·하수도사용조례·PuLP 최적해 출처 명시).
+  - `_kpi_source_html(src)` 헬퍼: `<details class="kpi-source">` + summary(ⓘ + caption) + body(3행) 마크업.
+  - `_DESIGN_CSS` 에 `.kpi-source*` CSS 추가 — 닫힘/열림 상태 색상, focus ring, info-icon 원형 border.
+
+### Verification
+- `uv run ruff check .` → All checks passed (`×` → `*` 로 RUF001 회피)
+- `uv run ruff format .` → 1 file reformatted (cards.py), 40 unchanged
+- `uv run pyright` → 0 errors, 136 warnings
+- `uv run pytest` → **43 passed** 유지, coverage 65.35%
+
+### Commit
+- `improve(cards): KPI 4종 카드에 데이터셋·계산식·갱신주기 ⓘ 출처 disclosure`
+
+### Notes (다음 라운드 후보 풀 잔여)
+- 안정성 A2·A3 (sidebar 빈 DF, load_app_data FNF 회귀 가드)
+- 기능 완성도 B2·B3 (라디우스 메타, ETL mtime)
+- 완성도 C1·C2·C3, 코드 품질 D1·D2, 성능 E1
+- 동률 영역 모두 9점. 다음 라운드는 사용자 핵심 플로우(검색·매칭) 영향이 큰 **B2 라디우스 메타**(매칭 솔루션 요약 카드) 또는 **A2 sidebar 빈 DF 회귀 테스트**.
+
+---
+
+## Round 14 — 매칭 솔루션 카드 라디우스 메타 (2026-05-18)
+
+- **Branch**: `agent/round-14-match-radius-meta`
+- **Scores (before → after)**:
+  - 기능 완성도: 9 → 9
+  - 사용자 경험: 9 → 9
+  - 안정성: 9 → 9
+  - 성능: 9 → 9
+  - 코드 품질: 9 → 9
+  - 완성도: 9 → 9 (내부 신뢰도 ↑)
+- **Lowest area**: 동률 9. 사용자 핵심 플로우(라디우스 슬라이더 변경 → 솔루션 갱신)의 가시성이 약했음 — 현재 어떤 반경의 솔루션을 보고 있는지/매칭 라인이 몇 건인지 카드에 표시 0건.
+
+### Planned improvement (후보 풀 B2 소진)
+`render_solution_summary` 시그니처에 `radius_m: int | None = None` 추가. 섹션 헤더에 `반경 1km · 매칭 N건` 메타를 우측 정렬로 표시. `main.py` 호출부에서 사이드바 radius_m 전달.
+
+### Files changed
+- `app/components/cards.py`
+  - `.section-header` flex 레이아웃 CSS 추가 (label 좌측 · meta 우측).
+  - `.section-meta` 톤 (muted 11px) 추가.
+  - `render_solution_summary` 시그니처에 `radius_m` 옵션 추가, 메타 HTML 분기 렌더.
+- `app/main.py`
+  - `render_solution_summary(selected.solution, selected.flows, radius_m=radius_m)` 로 호출 갱신.
+
+### Verification
+- `uv run ruff check --fix .` → 1 error fixed (자동), 0 remaining
+- `uv run ruff format .` → 1 file reformatted, 40 unchanged
+- `uv run pyright` → 0 errors, 136 warnings
+- `uv run pytest` → **43 passed** 유지, coverage 64.99%
+
+### Commit
+- `improve(cards): 매칭 솔루션 요약 카드에 선택 반경·매칭 건수 메타 표시`
+
+### Notes (다음 라운드 후보 풀 잔여)
+- 안정성 A2·A3 (sidebar 빈 DF, load_app_data FNF 회귀 가드)
+- 기능 완성도 B3 (ETL mtime)
+- 완성도 C1·C2·C3, 코드 품질 D1·D2, 성능 E1
+- 다음 라운드 후보: **A2 sidebar 빈 DF 회귀 테스트** (안정성 회귀 가드) — 코드 변경 없이 테스트만 추가, 안전.
+
+---
+
+## Round 15 — _find_building 가드 회귀 테스트 (2026-05-18)
+
+- **Branch**: `agent/round-15-find-building-guard-tests`
+- **Scores (before → after)**:
+  - 기능 완성도: 9 → 9
+  - 사용자 경험: 9 → 9
+  - 안정성: 9 → 9 (회귀 가드 ↑)
+  - 성능: 9 → 9
+  - 코드 품질: 9 → 9
+  - 완성도: 9 → 9
+- **Lowest area**: 동률 9. 안정성 영역에 잠재 회귀 — `_find_building` 의 가드(빈 DF, name 컬럼 결손, 빈 검색어, 매칭 0건) 4개가 코드에는 있는데 회귀 테스트 0건. 미래 리팩터에서 사용자 입력 정상 검색 플로우만 보고 가드를 제거할 위험.
+
+### Planned improvement (후보 풀 A2 소진)
+`tests/test_sidebar_search.py` 에 4개 회귀 테스트 추가:
+- `test_find_building_empty_dataframe_returns_none`
+- `test_find_building_missing_name_column_returns_none`
+- `test_find_building_empty_search_term_returns_none`
+- `test_find_building_no_match_returns_none`
+
+### Files changed
+- `tests/test_sidebar_search.py` — 4개 회귀 테스트 추가
+
+### Verification
+- `uv run ruff check .` → All checks passed
+- `uv run ruff format .` → 41 files left unchanged
+- `uv run pyright` → 0 errors, 136 warnings
+- `uv run pytest` → **47 passed** (43 → 47), coverage 64.99% → **65.31%**
+
+### Commit
+- `test(sidebar): _find_building 4종 가드 회귀 테스트 (빈 DF · name 컬럼 결손 · 빈 term · no match)`
+
+### Notes (다음 라운드 후보 풀 잔여)
+- 안정성 A3 (load_app_data FNF 회귀 가드)
+- 기능 완성도 B3 (ETL mtime 사이드바 footer)
+- 완성도 C1·C2·C3, 코드 품질 D1·D2, 성능 E1
+- 다음 라운드 1순위: **B3 ETL mtime** — 사용자가 데이터가 최신인지 즉시 알 수 있게 사이드바 footer 에 마지막 parquet 갱신 시각 표시.
+
+---
+
+## Round 16 — 사이드바 ETL 갱신 시각 표시 (2026-05-18)
+
+- **Branch**: `agent/round-16-data-refresh-mtime`
+- **Scores (before → after)**:
+  - 기능 완성도: 9 → 9
+  - 사용자 경험: 9 → 9
+  - 안정성: 9 → 9
+  - 성능: 9 → 9
+  - 코드 품질: 9 → 9
+  - 완성도: 9 → 9 (데이터 최신성 가시화)
+- **Lowest area**: 동률 9. 사용자가 "이 데이터가 최신인지" 알 수 없음 — 발표/시연에서 심사위원이 가장 먼저 묻는 질문 중 하나.
+
+### Planned improvement (후보 풀 B3 소진)
+`app/services/data.py` 에 `last_data_refresh()` 헬퍼 추가 — silver+gold parquet 중 가장 최근 mtime 을 KST datetime 으로 반환 (없으면 None). 5분 TTL `@st.cache_data`. 사이드바 footer 상단에 "데이터 갱신: YYYY-MM-DD HH:MM KST" 1줄 표시.
+
+### Files changed
+- `app/services/data.py`
+  - `KST: timezone = timezone(timedelta(hours=9))` 모듈 상수 추가.
+  - `last_data_refresh(data_dir=...) -> datetime | None` — silver/gold parquet glob → 최대 mtime → KST datetime.
+- `app/components/sidebar.py`
+  - `last_data_refresh()` 호출 결과를 footer 첫 줄에 출력 (None 이면 생략).
+  - `from app.services.data import last_data_refresh` 임포트 추가.
+- `tests/test_app.py`
+  - `test_last_data_refresh_returns_kst_datetime` (tmp_path 에 parquet 1개 생성 후 KST tz 확인)
+  - `test_last_data_refresh_returns_none_when_no_parquet` (빈 silver/gold 디렉토리)
+
+### Verification
+- `uv run ruff check .` → All checks passed
+- `uv run ruff format .` → 41 files left unchanged
+- `uv run pyright` → 0 errors, 136 warnings
+- `uv run pytest` → **49 passed** (47 → 49), coverage 65.31% → **65.56%**
+
+### Commit
+- `feat(data): 사이드바 footer 에 ETL 갱신 시각(KST) 표시 + last_data_refresh 헬퍼·테스트`
+
+### Notes (다음 라운드 후보 풀 잔여)
+- 안정성 A3 (load_app_data FNF 회귀 가드)
+- 완성도 C1·C2·C3, 코드 품질 D1·D2, 성능 E1
+- 다음 라운드 1순위: **C3 사이드바 footer GitHub 링크 / 라이선스 표기** — 본 라운드와 동일 컴포넌트, 작은 단위.
+
+---
+
+## Round 17 — load_app_data FNF 가드 회귀 테스트 (2026-05-18)
+
+- **Branch**: `agent/round-17-load-app-data-fnf-guard`
+- **Scores (before → after)**: 모두 9 유지 (안정성 회귀 가드 강화)
+- **Lowest area**: 안정성 (현 가드 회귀 테스트 미흡)
+
+### Planned improvement (후보 풀 A3 소진)
+`app/main.py:34-41` 의 FileNotFoundError 분기는 `load_app_data` 가 실제로 FileNotFoundError 를 raise 한다는 전제. 이 전제가 깨지면 사용자에게 보이는 에러 카드가 사라짐. `tests/test_app.py` 에 `load_app_data(str(tmp_path / "nonexistent"))` → `pytest.raises(FileNotFoundError)` 회귀 테스트 1건 추가.
+
+### Files changed
+- `tests/test_app.py` — pytest import, FNF 가드 회귀 테스트 1건
+
+### Verification
+- `uv run ruff check .` → All checks passed
+- `uv run ruff format .` → 41 files left unchanged
+- `uv run pyright` → 0 errors, 136 warnings
+- `uv run pytest` → **50 passed** (49 → 50), coverage 65.56% 유지
+
+### Commit
+- `test(data): load_app_data 데이터 없음 시 FileNotFoundError 회귀 가드`
+
+### Notes (다음 라운드 후보 풀 잔여)
+- 완성도 C1·C2·C3
+- 코드 품질 D1·D2
+- 성능 E1
+- 다음 라운드 1순위: **D2 sidebar.py 인라인 CSS 모듈상수 추출** — 코드 품질, 동작 변화 0, 안전. 그 뒤 D1.
+
+---
+
+## 최종 점수 (Round 17 기준)
 | 영역 | 점수 |
 |------|------|
-| 기능 완성도 | 8 |
-| 사용자 경험 | 8 |
-| 안정성/버그 | 8 |
-| 성능 | 8 |
+| 기능 완성도 | 9 |
+| 사용자 경험 | 9 |
+| 안정성/버그 | 9 |
+| 성능 | 9 |
 | 코드 품질 | 9 |
-| 완성도/폴리시 | 8 |
+| 완성도/폴리시 | 9 |

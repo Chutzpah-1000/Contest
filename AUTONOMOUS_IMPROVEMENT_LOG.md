@@ -211,10 +211,49 @@ uv run streamlit run app/main.py  # 앱 실행
 
 ---
 
-## 최종 점수 (Round 12 기준)
+## Round 13 — KPI 카드 ⓘ 출처 popover (2026-05-18)
+
+- **Branch**: `agent/round-13-kpi-source-popover`
+- **Scores (before → after)**:
+  - 기능 완성도: 8 → 9
+  - 사용자 경험: 9 → 9
+  - 안정성: 9 → 9
+  - 성능: 9 → 9
+  - 코드 품질: 9 → 9
+  - 완성도: 9 → 9
+- **Lowest area**: 기능 완성도 — KPI 4종 숫자만 노출, 데이터셋·계산식·갱신주기가 caption 한 줄로만 표현. Design.md §5 "모든 숫자는 단위+출처를 1급 UX" 미충족.
+
+### Planned improvement (후보 풀 B1 소진)
+4개 epiphany KPI 카드 caption 영역을 `<details><summary>` 디스클로저로 교체. summary 에 ⓘ 아이콘 + 기존 caption 표시, 펼치면 데이터셋 · 계산식 · 갱신주기 3행이 노출.
+
+### Files changed
+- `app/components/cards.py`
+  - `NamedTuple _KpiSource(caption, dataset, formula, refresh)` 도입.
+  - `_KPI_CAPTIONS` 4개 문자열을 `_KPI_SOURCES: tuple[_KpiSource, ...]` 로 확장 (서울 열린데이터광장·KEPCO 배출계수·하수도사용조례·PuLP 최적해 출처 명시).
+  - `_kpi_source_html(src)` 헬퍼: `<details class="kpi-source">` + summary(ⓘ + caption) + body(3행) 마크업.
+  - `_DESIGN_CSS` 에 `.kpi-source*` CSS 추가 — 닫힘/열림 상태 색상, focus ring, info-icon 원형 border.
+
+### Verification
+- `uv run ruff check .` → All checks passed (`×` → `*` 로 RUF001 회피)
+- `uv run ruff format .` → 1 file reformatted (cards.py), 40 unchanged
+- `uv run pyright` → 0 errors, 136 warnings
+- `uv run pytest` → **43 passed** 유지, coverage 65.35%
+
+### Commit
+- `improve(cards): KPI 4종 카드에 데이터셋·계산식·갱신주기 ⓘ 출처 disclosure`
+
+### Notes (다음 라운드 후보 풀 잔여)
+- 안정성 A2·A3 (sidebar 빈 DF, load_app_data FNF 회귀 가드)
+- 기능 완성도 B2·B3 (라디우스 메타, ETL mtime)
+- 완성도 C1·C2·C3, 코드 품질 D1·D2, 성능 E1
+- 동률 영역 모두 9점. 다음 라운드는 사용자 핵심 플로우(검색·매칭) 영향이 큰 **B2 라디우스 메타**(매칭 솔루션 요약 카드) 또는 **A2 sidebar 빈 DF 회귀 테스트**.
+
+---
+
+## 최종 점수 (Round 13 기준)
 | 영역 | 점수 |
 |------|------|
-| 기능 완성도 | 8 |
+| 기능 완성도 | 9 |
 | 사용자 경험 | 9 |
 | 안정성/버그 | 9 |
 | 성능 | 9 |

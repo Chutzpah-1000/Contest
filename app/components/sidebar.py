@@ -22,6 +22,20 @@ def render_sidebar(suppliers: pd.DataFrame) -> tuple[int, str]:
             """
             <style>
             [data-testid="stSidebar"] {background:#ffffff;border-right:1px solid #E4E4E0;}
+            [data-testid="stSidebarContent"] {padding-top:0 !important;}
+            .sb-header {
+                padding:14px 16px 12px;
+                border-bottom:1px solid #E4E4E0;
+                display:flex;align-items:center;gap:10px;
+                margin-bottom:14px;
+            }
+            .sb-icon {font-size:22px;line-height:1;}
+            .sb-title {font-size:14px;font-weight:700;color:#111111;line-height:1.2;}
+            .sb-subtitle {font-size:10px;color:#666A70;margin-top:2px;}
+            .sb-ctrl-label {
+                font-size:11px;font-weight:600;color:#666A70;
+                text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;
+            }
             .building-card {
                 background:#F7F7F5;border:1px solid #E4E4E0;border-radius:8px;
                 padding:16px;margin-top:12px;
@@ -48,14 +62,24 @@ def render_sidebar(suppliers: pd.DataFrame) -> tuple[int, str]:
             .roi-value {font-size:16px;font-weight:700;color:#1D7F5F;margin-top:2px;line-height:1.2;}
             .roi-unit {font-size:11px;font-weight:400;color:#666A70;}
             .roi-caption {font-size:10px;color:#888;margin-top:8px;line-height:1.4;}
+            .sb-footer {
+                margin-top:16px;padding-top:12px;border-top:1px solid #E4E4E0;
+                font-size:10px;color:#888;line-height:1.6;
+            }
             </style>
+            <div class="sb-header">
+              <span class="sb-icon">&#128167;</span>
+              <div>
+                <div class="sb-title">유출지하수 매칭</div>
+                <div class="sb-subtitle">서울시 공공데이터 분석 플랫폼</div>
+              </div>
+            </div>
             """,
             unsafe_allow_html=True,
         )
 
         st.markdown(
-            "<p style='font-size:11px;font-weight:600;color:#666A70;text-transform:uppercase;"
-            "letter-spacing:.05em;margin-bottom:6px;'>건물 검색</p>",
+            "<p class='sb-ctrl-label'>건물 검색</p>",
             unsafe_allow_html=True,
         )
         search_term: str = st.text_input(
@@ -73,8 +97,7 @@ def render_sidebar(suppliers: pd.DataFrame) -> tuple[int, str]:
         st.divider()
 
         st.markdown(
-            "<p style='font-size:11px;font-weight:600;color:#666A70;text-transform:uppercase;"
-            "letter-spacing:.05em;margin-bottom:6px;'>매칭 반경</p>",
+            "<p class='sb-ctrl-label'>매칭 반경</p>",
             unsafe_allow_html=True,
         )
         radius_m: int = st.radio(
@@ -85,6 +108,14 @@ def render_sidebar(suppliers: pd.DataFrame) -> tuple[int, str]:
             horizontal=True,
             label_visibility="collapsed",
         )  # type: ignore[assignment]  # st.radio returns Any; guaranteed int from options list
+
+        st.markdown(
+            "<div class='sb-footer'>"
+            "서울 열린데이터광장 · 기상청 ASOS<br>"
+            "2026 서울시 빅데이터 경진대회 창업 부문"
+            "</div>",
+            unsafe_allow_html=True,
+        )
 
         return radius_m, search_term
 

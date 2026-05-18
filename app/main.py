@@ -29,12 +29,21 @@ def main() -> None:
     st.set_page_config(page_title="서울 유출지하수 매칭", layout="wide", page_icon="💧")
     inject_design_css()
 
-    data = load_app_data()
+    try:
+        data = load_app_data()
+    except FileNotFoundError:
+        st.error(
+            "데이터 파일을 찾을 수 없습니다. "
+            "`uv run python -m etl.pipelines transform` 을 먼저 실행하세요.",
+            icon="🗂️",
+        )
+        st.stop()
+        return
     radius_m, search_term = render_sidebar(data.suppliers)
 
     st.markdown(
-        "<h1 style='margin-bottom:4px;'>서울 유출지하수 매칭</h1>"
-        "<p style='font-size:14px;color:#666A70;margin-bottom:16px;'>"
+        "<h1>서울 유출지하수 매칭</h1>"
+        "<p style='font-size:14px;color:#666A70;margin-bottom:18px;line-height:1.45;'>"
         "서울시 공공데이터 기반 유출지하수 공급처 · 수요처 매칭 분석</p>",
         unsafe_allow_html=True,
     )
@@ -56,6 +65,10 @@ def main() -> None:
             icon="⚠️",
         )
 
+    st.markdown(
+        "<p class='section-label'>공급-수요 매칭 지도</p>",
+        unsafe_allow_html=True,
+    )
     components.html(
         build_kakao_map_html(
             suppliers=data.suppliers,

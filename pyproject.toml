@@ -121,6 +121,8 @@ unfixable = [
     "D",       # docstring 의무 면제
     "PLR2004", # 매직 넘버 허용
     "SLF001",  # private 멤버 접근 허용
+    "PLC2701", # private name import 허용 (내부 함수 단위 테스트)
+    "RUF069",  # float == 비교 허용 (정확한 0.0/1.0 체크)
     "INP001",  # __init__.py 미존재 허용
 ]
 "app/main.py" = [

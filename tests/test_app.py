@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 
 import pandas as pd
+import pytest
 
 from app.components.kakao_map import build_kakao_map_html
 from app.services.data import KST, last_data_refresh, load_app_data
@@ -132,6 +133,12 @@ def test_metric_value_nan_returns_zero() -> None:
         {"metric_name": ["total_discharge_ton_day"], "metric_value": [float("nan")]}
     )
     assert metric_value(metrics, "total_discharge_ton_day") == 0.0
+
+
+def test_load_app_data_raises_filenotfound_for_missing_data_dir(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """`app/main.py` 의 FileNotFoundError 분기 가드용 회귀 테스트."""
+    with pytest.raises(FileNotFoundError):
+        load_app_data(str(tmp_path / "nonexistent"))
 
 
 def test_last_data_refresh_returns_kst_datetime(tmp_path) -> None:  # type: ignore[no-untyped-def]

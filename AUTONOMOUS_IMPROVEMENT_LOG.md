@@ -371,7 +371,36 @@ uv run streamlit run app/main.py  # 앱 실행
 
 ---
 
-## 최종 점수 (Round 16 기준)
+## Round 17 — load_app_data FNF 가드 회귀 테스트 (2026-05-18)
+
+- **Branch**: `agent/round-17-load-app-data-fnf-guard`
+- **Scores (before → after)**: 모두 9 유지 (안정성 회귀 가드 강화)
+- **Lowest area**: 안정성 (현 가드 회귀 테스트 미흡)
+
+### Planned improvement (후보 풀 A3 소진)
+`app/main.py:34-41` 의 FileNotFoundError 분기는 `load_app_data` 가 실제로 FileNotFoundError 를 raise 한다는 전제. 이 전제가 깨지면 사용자에게 보이는 에러 카드가 사라짐. `tests/test_app.py` 에 `load_app_data(str(tmp_path / "nonexistent"))` → `pytest.raises(FileNotFoundError)` 회귀 테스트 1건 추가.
+
+### Files changed
+- `tests/test_app.py` — pytest import, FNF 가드 회귀 테스트 1건
+
+### Verification
+- `uv run ruff check .` → All checks passed
+- `uv run ruff format .` → 41 files left unchanged
+- `uv run pyright` → 0 errors, 136 warnings
+- `uv run pytest` → **50 passed** (49 → 50), coverage 65.56% 유지
+
+### Commit
+- `test(data): load_app_data 데이터 없음 시 FileNotFoundError 회귀 가드`
+
+### Notes (다음 라운드 후보 풀 잔여)
+- 완성도 C1·C2·C3
+- 코드 품질 D1·D2
+- 성능 E1
+- 다음 라운드 1순위: **D2 sidebar.py 인라인 CSS 모듈상수 추출** — 코드 품질, 동작 변화 0, 안전. 그 뒤 D1.
+
+---
+
+## 최종 점수 (Round 17 기준)
 | 영역 | 점수 |
 |------|------|
 | 기능 완성도 | 9 |

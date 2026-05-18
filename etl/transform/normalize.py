@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import math
 import re
 from typing import TYPE_CHECKING, Final, cast
@@ -14,6 +15,8 @@ SEOUL_LAT_RANGE: Final[tuple[float, float]] = (33.0, 39.0)
 SEOUL_LNG_RANGE: Final[tuple[float, float]] = (124.0, 132.0)
 DEFAULT_SEOUL_LAT: Final = 37.5665
 DEFAULT_SEOUL_LNG: Final = 126.9780
+SEOUL_BBOX_LAT_RANGE: Final[tuple[float, float]] = (37.43, 37.70)
+SEOUL_BBOX_LNG_RANGE: Final[tuple[float, float]] = (126.78, 127.18)
 
 
 def read_csv_table(path: Path) -> pd.DataFrame:
@@ -118,6 +121,92 @@ def fill_missing_seoul_coordinates(
         filled_latitudes.append(DEFAULT_SEOUL_LAT + offset if math.isnan(latitude) else latitude)
         filled_longitudes.append(DEFAULT_SEOUL_LNG + offset if math.isnan(longitude) else longitude)
     return filled_latitudes, filled_longitudes
+
+
+def geocode_with_hash_fallback(
+    latitudes: list[float],
+    longitudes: list[float],
+    seeds: list[str],
+) -> tuple[list[float], list[float], list[str]]:
+    """Use original coordinates when finite, otherwise hash-scatter inside Seoul bbox.
+
+    Returns:
+        (latitudes, longitudes, geo_method) where geo_method is 'original' or 'hash_scatter'.
+    """
+    lat_lo, lat_hi = SEOUL_BBOX_LAT_RANGE
+    lng_lo, lng_hi = SEOUL_BBOX_LNG_RANGE
+    out_lat: list[float] = []
+    out_lng: list[float] = []
+    method: list[str] = []
+    for index, latitude in enumerate(latitudes):
+        longitude = longitudes[index]
+        if math.isfinite(latitude) and math.isfinite(longitude):
+            out_lat.append(latitude)
+            out_lng.append(longitude)
+            method.append("original")
+            continue
+        seed = seeds[index] if index < len(seeds) else f"row-{index}"
+        digest = hashlib.md5(seed.encode("utf-8"), usedforsecurity=False).digest()
+        out_lat.append(lat_lo + (digest[0] / 255.0) * (lat_hi - lat_lo))
+        out_lng.append(lng_lo + (digest[1] / 255.0) * (lng_hi - lng_lo))
+        method.append("hash_scatter")
+    return out_lat, out_lng, method
+
+
+def parse_leading_number(value: object, default: float) -> float:
+    """Extract the leading numeric token from a possibly-noisy string ('2896887㎡ …' → 2896887).
+
+    Returns:
+        Leading float, or default when no number can be recovered.
+    """
+    if value is None:
+        return default
+    if isinstance(value, float) and math.isnan(value):
+        return default
+    text = str(value).strip().replace(",", "")
+    match = re.match(r"[-+]?\d+(?:\.\d+)?", text)
+    if match is None:
+        return default
+    try:
+        return float(match.group(0))
+    except (TypeError, ValueError):
+        return default
+
+
+def permissive_numeric_values(
+    table: pd.DataFrame,
+    candidates: Iterable[str],
+    default: float,
+) -> list[float]:
+    """Like numeric_values but tolerates non-numeric suffixes such as units.
+
+    Returns:
+        Float values parsed from the leading numeric token of each cell.
+    """
+    column = first_available_column(table, candidates)
+    if column is None:
+        return [default for _ in range(len(table))]
+    return [parse_leading_number(value, default) for value in _column_values(table, column)]
+
+
+def parse_floor_count(value: object, default: int = 0) -> int:
+    """Parse '20/8' (지상/지하) style or plain numeric floor count to above-ground floors.
+
+    Returns:
+        Above-ground floor count, or default when unparsable.
+    """
+    if value is None:
+        return default
+    if isinstance(value, float) and math.isnan(value):
+        return default
+    text = str(value).strip()
+    if not text:
+        return default
+    head = text.split("/")[0].strip()
+    try:
+        return int(float(head))
+    except (TypeError, ValueError):
+        return default
 
 
 def validate_seoul_bbox(

@@ -1,14 +1,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Final
+from typing import TYPE_CHECKING, Final, cast
 
 import pandas as pd
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
 from etl.transform.normalize import (
-    fill_missing_seoul_coordinates,
+    first_available_column,
+    geocode_with_hash_fallback,
     normalize_year_month_values,
     numeric_values,
+    parse_floor_count,
     string_values,
     validate_seoul_bbox,
 )
@@ -24,6 +29,7 @@ class _SupplierColumns:
     addresses: list[str]
     latitudes: list[float]
     longitudes: list[float]
+    geo_methods: list[str]
     daily_supplies: list[float]
     floors: list[int]
     areas: list[float]
@@ -57,6 +63,7 @@ def build_suppliers(
                 "address": columns.addresses[index],
                 "latitude": columns.latitudes[index],
                 "longitude": columns.longitudes[index],
+                "geo_method": columns.geo_methods[index],
                 "total_floor_area_m2": total_area,
                 "floors": total_floors,
                 "daily_avg_supply_ton": daily_supply,
@@ -95,26 +102,47 @@ def build_supply_history(suppliers: pd.DataFrame, source: pd.DataFrame) -> pd.Da
 
 
 def _supplier_columns(groundwater: pd.DataFrame) -> _SupplierColumns:
-    latitudes, longitudes = fill_missing_seoul_coordinates(
-        numeric_values(groundwater, ("latitude", "lat", "위도"), default=float("nan")),
-        numeric_values(groundwater, ("longitude", "lng", "lon", "경도"), default=float("nan")),
+    names = string_values(groundwater, ("name", "building_name", "시설물명", "건축물명"), "Unknown")
+    addresses = string_values(
+        groundwater,
+        ("address", "location", "위치", "주소", "건축물 위치", "건축물위치"),
+        "Seoul",
     )
+    raw_lats = numeric_values(
+        groundwater, ("latitude", "lat", "위도", "Y좌표(WGS84)"), default=float("nan")
+    )
+    raw_lngs = numeric_values(
+        groundwater,
+        ("longitude", "lng", "lon", "경도", "X좌표(WGS84)"),
+        default=float("nan"),
+    )
+    seeds = [f"{names[index]}|{addresses[index]}|{index}" for index in range(len(names))]
+    latitudes, longitudes, geo_methods = geocode_with_hash_fallback(raw_lats, raw_lngs, seeds)
+    floor_column = first_available_column(
+        groundwater, ("floors", "floor_count", "층수", "층수(지상_지하)")
+    )
+    floors_raw: list[object] = (
+        list(cast("Iterable[object]", groundwater[floor_column])) if floor_column else []
+    )
+    floors = [parse_floor_count(value, 0) for value in floors_raw] or [0] * len(names)
     return _SupplierColumns(
-        names=string_values(
-            groundwater, ("name", "building_name", "시설물명", "건축물명"), "Unknown"
-        ),
-        addresses=string_values(groundwater, ("address", "location", "위치", "주소"), "Seoul"),
+        names=names,
+        addresses=addresses,
         latitudes=latitudes,
         longitudes=longitudes,
+        geo_methods=geo_methods,
         daily_supplies=numeric_values(
             groundwater,
-            ("daily_avg_supply_ton", "daily_supply_ton", "일평균발생량", "발생량"),
+            (
+                "daily_avg_supply_ton",
+                "daily_supply_ton",
+                "일평균발생량",
+                "발생량",
+                "일평균발생량(톤/일)",
+            ),
             default=0.0,
         ),
-        floors=[
-            int(value)
-            for value in numeric_values(groundwater, ("floors", "floor_count", "층수"), 0.0)
-        ],
+        floors=floors,
         areas=numeric_values(groundwater, ("total_floor_area_m2", "floor_area_m2", "연면적"), 0.0),
         quality_grades=[
             min(4, max(1, int(value)))

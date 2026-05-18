@@ -4,7 +4,13 @@ import re
 
 import pandas as pd
 
-from etl.paths import SILVER_DIR
+from etl.paths import (
+    BRONZE_BUILDINGS,
+    BRONZE_GROUNDWATER,
+    BRONZE_PARKS,
+    BRONZE_ROADS,
+    SILVER_DIR,
+)
 from etl.pipelines import run_extract, run_transform
 from etl.sample_data import build_demo_bronze_tables
 from etl.transform.demand import build_demand_parks, build_demand_roads
@@ -32,11 +38,11 @@ def test_transform_writes_day_one_silver_tables(tmp_path) -> None:
 def test_seoul_bbox() -> None:
     tables = build_demo_bronze_tables()
     suppliers = build_suppliers(
-        tables["seoul_groundwater_discharge.csv"],
-        tables["seoul_buildings_register.csv"],
+        tables[BRONZE_GROUNDWATER],
+        tables[BRONZE_BUILDINGS],
     )
-    parks = build_demand_parks(tables["seoul_parks.csv"])
-    roads = build_demand_roads(tables["seoul_roads.csv"])
+    parks = build_demand_parks(tables[BRONZE_PARKS])
+    roads = build_demand_roads(tables[BRONZE_ROADS])
 
     validate_seoul_bbox(suppliers)
     validate_seoul_bbox(parks)
@@ -46,8 +52,8 @@ def test_seoul_bbox() -> None:
 def test_reportable_suppliers_are_identified() -> None:
     tables = build_demo_bronze_tables()
     suppliers = build_suppliers(
-        tables["seoul_groundwater_discharge.csv"],
-        tables["seoul_buildings_register.csv"],
+        tables[BRONZE_GROUNDWATER],
+        tables[BRONZE_BUILDINGS],
     )
 
     matched = suppliers[
@@ -62,10 +68,10 @@ def test_reportable_suppliers_are_identified() -> None:
 def test_no_nan_in_core_silver_fields() -> None:
     tables = build_demo_bronze_tables()
     suppliers = build_suppliers(
-        tables["seoul_groundwater_discharge.csv"],
-        tables["seoul_buildings_register.csv"],
+        tables[BRONZE_GROUNDWATER],
+        tables[BRONZE_BUILDINGS],
     )
-    parks = build_demand_parks(tables["seoul_parks.csv"])
+    parks = build_demand_parks(tables[BRONZE_PARKS])
 
     supplier_columns = ["daily_avg_supply_ton", "latitude", "longitude"]
     park_columns = ["area_m2", "latitude", "longitude"]

@@ -54,6 +54,10 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","N
 .panel-title{font-size:12px;font-weight:700;color:#111;letter-spacing:.01em;flex:1;}
 .cnt-badge{font-size:10px;color:#fff;background:#0071E3;border-radius:10px;padding:1px 6px;font-weight:700;}
 .back-btn{background:none;border:none;cursor:pointer;font-size:11px;color:#0071E3;font-weight:600;padding:0;}
+.filter-tabs{display:flex;gap:1px;background:#E4E4E0;border-radius:4px;padding:1px;}
+.filter-tab{font-size:10px;font-weight:600;padding:3px 7px;border-radius:3px;cursor:pointer;
+  border:none;background:transparent;color:#888;line-height:1;}
+.filter-tab.active{background:#fff;color:#111;}
 
 /* List view */
 #list-view{display:flex;flex-direction:column;height:100%;}
@@ -115,6 +119,10 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","N
       <div class="panel-hdr">
         <span class="panel-title">공급처 목록</span>
         <span id="sup-count" class="cnt-badge">0</span>
+        <div class="filter-tabs">
+          <button class="filter-tab active" id="tab-all">전체</button>
+          <button class="filter-tab" id="tab-matched">매칭됨</button>
+        </div>
       </div>
       <div id="sup-list"></div>
     </div>
@@ -150,7 +158,7 @@ var SEARCH_TERM=__SEARCH_TERM_JSON__;
 var CENTER_LAT=__CENTER_LAT__;
 var CENTER_LNG=__CENTER_LNG__;
 var ZOOM=__ZOOM__;
-var _map=null,__sdkLoaded=false,__mapReady=false,_activeItem=null;
+var _map=null,__sdkLoaded=false,__mapReady=false,_activeItem=null,_filterMatched=false;
 
 function __status(html,isErr){
   var s=document.getElementById('status');
@@ -186,6 +194,28 @@ function showDetail(html){
 document.getElementById('back-btn').onclick=showList;
 document.getElementById('btn-zi').onclick=function(){if(_map)_map.setLevel(_map.getLevel()-1);};
 document.getElementById('btn-zo').onclick=function(){if(_map)_map.setLevel(_map.getLevel()+1);};
+// Filter tabs — wired after kakao.maps.load builds supItems
+function _applyFilter(){
+  // Called after supItems is built; no-op before that
+  if(!window._supItems||!window._sortedSup||!window._matchedSet)return;
+  var cnt=0;
+  window._supItems.forEach(function(item,idx){
+    var s=window._sortedSup[idx];
+    var show=!_filterMatched||!!window._matchedSet[s.supplier_id];
+    item.style.display=show?'':'none';
+    if(show)cnt++;
+  });
+  document.getElementById('sup-count').textContent=cnt;
+}
+function _setFilter(matched){
+  _filterMatched=matched;
+  document.getElementById('tab-all').className='filter-tab'+(matched?'':' active');
+  document.getElementById('tab-matched').className='filter-tab'+(matched?' active':'');
+  _applyFilter();
+  showList();
+}
+document.getElementById('tab-all').onclick=function(){_setFilter(false);};
+document.getElementById('tab-matched').onclick=function(){_setFilter(true);};
 </script>
 <script>
 // Kakao SDK에서 srcdoc iframe에서 http://t1.daumcdn.net 스크립트를 주입하는 문제:
@@ -285,6 +315,7 @@ function buildSupDetail(s,matched){
 var sortedSup=SUPPLIERS.slice().sort(function(a,b){
   return (b.daily_avg_supply_ton||0)-(a.daily_avg_supply_ton||0);
 });
+window._sortedSup=sortedSup;window._matchedSet=matchedSet;
 var supItems=[];
 var supListEl=document.getElementById('sup-list');
 document.getElementById('sup-count').textContent=sortedSup.length;
@@ -316,6 +347,8 @@ sortedSup.forEach(function(s,idx){
   supListEl.appendChild(item);
   supItems.push(item);
 });
+window._supItems=supItems;
+_applyFilter();
 
 // Build supplier markers (pin style)
 SUPPLIERS.forEach(function(s){

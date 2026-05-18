@@ -495,7 +495,38 @@ uv run streamlit run app/main.py  # 앱 실행
 
 ---
 
-## 최종 점수 (Round 20 기준)
+## Round 21 — 사이드바 검색 폼 레이아웃·input border 가시화 (사용자 피드백, 2026-05-18)
+
+- **Branch**: `agent/round-21-search-form-layout-fix`
+- **Lowest area**: 사용자 경험 — 로컬 시연 중 사용자가 직접 지적. (1) 검색·초기화 버튼이 3:1 비율로 좌측 치우침, (2) text_input border 가 Streamlit 기본 회색이라 hover 전까지 폼 경계가 모호.
+- **Source**: 자율 후보 풀이 아니라 **사용자 명시 피드백** 기반.
+
+### Planned improvement
+- 버튼 column 비율 `[3, 1]` → `st.columns(2)` (정확히 1:1).
+- `_SIDEBAR_CSS` 에 input border 규칙 추가: `[data-testid="stSidebar"] [data-testid="stTextInput"]` 스코프에서 1px solid `#111111`, focus 시 `#0071E3` + 2px ring.
+
+### Files changed
+- `app/components/sidebar.py`
+  - `_SIDEBAR_CSS` 에 text_input border CSS 추가 (baseweb + 일반 selector 양쪽 커버).
+  - `_render_search_form` 의 `st.columns([3, 1])` → `st.columns(2)`.
+
+### Verification
+- `uv run ruff check .` → All checks passed
+- `uv run ruff format .` → 41 files left unchanged
+- `uv run pyright` → 0 errors, 136 warnings
+- `uv run pytest` → **50 passed** 유지, coverage 65.67% 유지
+
+### Commit
+- `fix(sidebar): 검색·초기화 버튼 1:1 비율 + input border 검정 가시화 (사용자 피드백)`
+
+### Notes
+- Round 11 에서 도입한 사이드바 폼 톤 후속 폴리시.
+- Streamlit 의 text_input DOM 은 버전마다 wrapper 구조가 약간 다름 → `div[data-baseweb="input"]` 과 `> div > div` 두 selector 를 둘 다 사용해 호환성 확보.
+- Round 20 종료 직후 사용자 피드백 발생 → Round 21 로 흡수. 다음 라운드는 사용자 후속 피드백 또는 후보 풀 잔여(C1·C3·E1).
+
+---
+
+## 최종 점수 (Round 21 기준)
 | 영역 | 점수 |
 |------|------|
 | 기능 완성도 | 9 |

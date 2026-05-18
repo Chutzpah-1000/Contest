@@ -59,6 +59,24 @@ _SIDEBAR_CSS: Final[str] = """
     margin-top:16px;padding-top:12px;border-top:1px solid #E4E4E0;
     font-size:10px;color:#888;line-height:1.6;
 }
+/* 사이드바 검색 input border — hover 없이도 항상 보이도록 검정 톤 */
+[data-testid="stSidebar"] [data-testid="stTextInput"] div[data-baseweb="input"],
+[data-testid="stSidebar"] [data-testid="stTextInput"] > div > div {
+    border:1px solid #111111 !important;
+    border-radius:6px !important;
+    background:#FFFFFF !important;
+    box-shadow:none !important;
+    transition:border-color .12s ease, box-shadow .12s ease;
+}
+[data-testid="stSidebar"] [data-testid="stTextInput"] div[data-baseweb="input"]:focus-within,
+[data-testid="stSidebar"] [data-testid="stTextInput"] > div > div:focus-within {
+    border-color:#0071E3 !important;
+    box-shadow:0 0 0 2px rgba(0,113,227,.18) !important;
+}
+[data-testid="stSidebar"] [data-testid="stTextInput"] input {
+    color:#111111 !important;
+}
+
 /* 사이드바 검색 폼 버튼 톤 — Design.md monochrome data-product */
 [data-testid="stSidebar"] [data-testid="stForm"] button {
     background:#FFFFFF !important;
@@ -189,7 +207,7 @@ def _render_search_form() -> str:
             label_visibility="collapsed",
             key="sidebar_search_raw",
         )
-        cols = st.columns([3, 1])
+        cols = st.columns(2)
         with cols[0]:
             submitted = st.form_submit_button("검색", use_container_width=True)
         with cols[1]:

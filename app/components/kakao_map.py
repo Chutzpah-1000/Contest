@@ -61,6 +61,8 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","N
 
 /* List view */
 #list-view{display:flex;flex-direction:column;height:100%;}
+#stats-bar{padding:6px 14px;border-bottom:1px solid #E4E4E0;font-size:11px;color:#888;background:#F7F7F5;flex-shrink:0;}
+#stats-bar b{color:#1D7F5F;}
 #sup-list{flex:1;overflow-y:auto;}
 .sup-item{padding:9px 13px;border-bottom:1px solid #F0F0EE;cursor:pointer;display:flex;gap:8px;align-items:flex-start;}
 .sup-item:hover{background:#F7F7F5;}
@@ -124,6 +126,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","N
           <button class="filter-tab" id="tab-matched">매칭됨</button>
         </div>
       </div>
+      <div id="stats-bar">일 발생량 <b id="stat-ton">-</b> 톤 · 매칭 <b id="stat-matched">-</b>건</div>
       <div id="sup-list"></div>
     </div>
     <div id="detail-view">
@@ -198,14 +201,16 @@ document.getElementById('btn-zo').onclick=function(){if(_map)_map.setLevel(_map.
 function _applyFilter(){
   // Called after supItems is built; no-op before that
   if(!window._supItems||!window._sortedSup||!window._matchedSet)return;
-  var cnt=0;
+  var cnt=0,totTon=0,matched=0;
   window._supItems.forEach(function(item,idx){
     var s=window._sortedSup[idx];
     var show=!_filterMatched||!!window._matchedSet[s.supplier_id];
     item.style.display=show?'':'none';
-    if(show)cnt++;
+    if(show){cnt++;totTon+=(s.daily_avg_supply_ton||0);if(window._matchedSet[s.supplier_id])matched++;}
   });
   document.getElementById('sup-count').textContent=cnt;
+  document.getElementById('stat-ton').textContent=Math.round(totTon).toLocaleString();
+  document.getElementById('stat-matched').textContent=matched;
 }
 function _setFilter(matched){
   _filterMatched=matched;

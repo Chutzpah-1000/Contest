@@ -23,7 +23,10 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v3
         with:
-          python-version: "3.11"
+          enable-cache: true
+
+      - name: Install Python (via uv)
+        run: uv python install 3.11
 
       - name: Install dependencies
         run: uv sync --frozen

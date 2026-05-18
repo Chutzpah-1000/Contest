@@ -5,6 +5,7 @@ import math
 from typing import TYPE_CHECKING
 
 import numpy as np
+import streamlit as st
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -216,18 +217,24 @@ function _passes(s){
   if(_filterMode==='reportable')return !!s.reportable;
   return true;
 }
+var _applyFilterRaf=0;
 function _applyFilter(){
   if(!window._supItems||!window._displayedSup||!window._matchedSet)return;
-  var cnt=0;
-  window._supItems.forEach(function(item,idx){
-    var s=window._displayedSup[idx];
-    var show=_passes(s);
-    item.style.display=show?'':'none';
-    if(show)cnt++;
+  if(_applyFilterRaf)cancelAnimationFrame(_applyFilterRaf);
+  _applyFilterRaf=requestAnimationFrame(function(){
+    _applyFilterRaf=0;
+    var cnt=0;
+    var items=window._supItems;
+    var disp=window._displayedSup;
+    for(var i=0;i<items.length;i++){
+      var show=_passes(disp[i]);
+      items[i].style.display=show?'':'none';
+      if(show)cnt++;
+    }
+    document.getElementById('sup-count').textContent=cnt;
+    document.getElementById('list-shown').textContent=cnt;
+    if(window._clusterers)window._clusterers.rebuild();
   });
-  document.getElementById('sup-count').textContent=cnt;
-  document.getElementById('list-shown').textContent=cnt;
-  if(window._clusterers)window._clusterers.rebuild();
 }
 function _setFilter(mode){
   _filterMode=mode;
@@ -442,7 +449,8 @@ window._clusterers={
 };
 _applyFilter();
 
-// Park markers (circle)
+// Demand markers tracked for viewport culling on idle
+var parkMarkers=[];
 PARKS.forEach(function(p){
   var r=Math.max(5,Math.min(14,Math.round((p.area_m2||100000)/PARK_AREA_SCALE*14)));
   var marker=new kakao.maps.Marker({
@@ -451,6 +459,7 @@ PARKS.forEach(function(p){
     image:makeCircImg('#f97316',r),
     title:p.name||''
   });
+  marker._lat=p.latitude;marker._lng=p.longitude;
   (function(p){
     kakao.maps.event.addListener(marker,'click',function(){
       showDetail('<div class="d-body"><div class="d-name">'+(p.name||'')+'</div>'
@@ -460,9 +469,10 @@ PARKS.forEach(function(p){
         +'<span class="d-sunit"> m\u00b2</span></div></div>');
     });
   })(p);
+  parkMarkers.push(marker);
 });
 
-// Road markers (small circle)
+var roadMarkers=[];
 ROADS.forEach(function(r){
   var marker=new kakao.maps.Marker({
     map:_map,
@@ -470,6 +480,7 @@ ROADS.forEach(function(r){
     image:makeCircImg('#fb923c',5),
     title:r.name||''
   });
+  marker._lat=r.centroid_lat;marker._lng=r.centroid_lng;
   (function(r){
     kakao.maps.event.addListener(marker,'click',function(){
       showDetail('<div class="d-body"><div class="d-name">'+(r.name||'')+'</div>'
@@ -479,27 +490,72 @@ ROADS.forEach(function(r){
         +'<span class="d-sunit"> m</span></div></div>');
     });
   })(r);
+  roadMarkers.push(marker);
 });
 
-// Flow polylines
+// Flow polylines — tracked for level/bounds-aware visibility
+var flowLines=[];
 FLOWS.forEach(function(f){
   var sc=supCoords[f.supplier_id];
   var dc=demCoords[f.demand_id];
   if(!sc||!dc)return;
-  new kakao.maps.Polyline({
+  var line=new kakao.maps.Polyline({
     map:_map,
     path:[new kakao.maps.LatLng(sc.lat,sc.lng),new kakao.maps.LatLng(dc.lat,dc.lng)],
     strokeWeight:Math.max(2,Math.min(7,(f.ton_per_day||10)/FLOW_TON_SCALE)),
     strokeColor:'#22c55e',strokeOpacity:0.65,strokeStyle:'solid'
   });
+  line._sLat=sc.lat;line._sLng=sc.lng;line._dLat=dc.lat;line._dLng=dc.lng;
+  flowLines.push(line);
 });
 
-// Search: zoom to match + show detail in panel
+// Viewport culling on idle: keep DOM low while panning at city scale.
+// Suppliers go through MarkerClusterer; we cull parks/roads/flows.
+var FLOW_HIDE_LEVEL=8;
+var _idleTimer=0;
+function _withinBounds(b,lat,lng){
+  var sw=b.getSouthWest(),ne=b.getNorthEast();
+  return lat>=sw.getLat()&&lat<=ne.getLat()&&lng>=sw.getLng()&&lng<=ne.getLng();
+}
+function _cullDemand(){
+  var bounds=_map.getBounds();
+  var level=_map.getLevel();
+  for(var i=0;i<parkMarkers.length;i++){
+    var m=parkMarkers[i];
+    var show=_withinBounds(bounds,m._lat,m._lng);
+    if(show&&!m.getMap())m.setMap(_map);
+    else if(!show&&m.getMap())m.setMap(null);
+  }
+  for(var j=0;j<roadMarkers.length;j++){
+    var rm=roadMarkers[j];
+    var show2=_withinBounds(bounds,rm._lat,rm._lng);
+    if(show2&&!rm.getMap())rm.setMap(_map);
+    else if(!show2&&rm.getMap())rm.setMap(null);
+  }
+  var hideFlows=level>=FLOW_HIDE_LEVEL;
+  for(var k=0;k<flowLines.length;k++){
+    var fl=flowLines[k];
+    var inView=!hideFlows&&(_withinBounds(bounds,fl._sLat,fl._sLng)||_withinBounds(bounds,fl._dLat,fl._dLng));
+    if(inView&&!fl.getMap())fl.setMap(_map);
+    else if(!inView&&fl.getMap())fl.setMap(null);
+  }
+}
+function _scheduleCull(){
+  if(_idleTimer)clearTimeout(_idleTimer);
+  _idleTimer=setTimeout(function(){_idleTimer=0;_cullDemand();},100);
+}
+kakao.maps.event.addListener(_map,'idle',_scheduleCull);
+_cullDemand();
+
+// Search: zoom to match + show detail in panel (lower-cased name cache built once)
+var nameLower=new Array(sortedSup.length);
+for(var ni=0;ni<sortedSup.length;ni++){
+  nameLower[ni]=(sortedSup[ni].name||'').toLowerCase();
+}
 if(SEARCH_TERM){
   var term=SEARCH_TERM.toLowerCase();
   for(var i=0;i<sortedSup.length;i++){
-    var nm=(sortedSup[i].name||'').toLowerCase();
-    if(nm.indexOf(term)>=0){
+    if(nameLower[i].indexOf(term)>=0){
       var sd=sortedSup[i];
       var matched2=!!matchedSet[sd.supplier_id];
       _map.setCenter(new kakao.maps.LatLng(sd.latitude,sd.longitude));
@@ -524,6 +580,7 @@ __hideStatus();
 </html>"""
 
 
+@st.cache_data(show_spinner=False, max_entries=16)
 def build_kakao_map_html(
     suppliers: pd.DataFrame,
     parks: pd.DataFrame,
@@ -533,6 +590,10 @@ def build_kakao_map_html(
     js_key: str,
 ) -> str:
     """Build an HTML string embedding the Naver-style Kakao Maps UI.
+
+    Cached per (suppliers, parks, roads, flows, search_term, js_key) tuple so that
+    Streamlit reruns triggered by unrelated widget state do not re-serialize data
+    or re-build the iframe HTML.
 
     Returns:
         HTML string suitable for st.components.v1.html().

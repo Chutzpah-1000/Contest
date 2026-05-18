@@ -82,11 +82,7 @@ def render_sidebar(suppliers: pd.DataFrame) -> tuple[int, str]:
             "<p class='sb-ctrl-label'>건물 검색</p>",
             unsafe_allow_html=True,
         )
-        search_term: str = st.text_input(
-            "건물 검색",
-            placeholder="예: 서울 광역자원순환센터",
-            label_visibility="collapsed",
-        )
+        search_term = _render_search_form()
 
         matched = _find_building(suppliers, search_term)
         if matched is not None:
@@ -118,6 +114,56 @@ def render_sidebar(suppliers: pd.DataFrame) -> tuple[int, str]:
         )
 
         return radius_m, search_term
+
+
+_SEARCH_APPLIED_KEY: str = "sidebar_search_applied"
+
+
+def resolve_search_state(*, raw: str, submitted: bool, cleared: bool, current_applied: str) -> str:
+    """Compute the next applied search term given form state.
+
+    Args:
+        raw: Latest text_input value.
+        submitted: True if the "검색" submit button fired this rerun.
+        cleared: True if the "초기화" submit button fired this rerun.
+        current_applied: Previously applied search term (from session state).
+
+    Returns:
+        The search term to apply (and persist) for this rerun.
+    """
+    if cleared:
+        return ""
+    if submitted:
+        return raw
+    return current_applied
+
+
+def _render_search_form() -> str:
+    """Render the building search form with explicit submit to avoid per-keystroke reruns.
+
+    Returns:
+        The applied search term (only updates on form submit / Enter).
+    """
+    applied: str = st.session_state.get(_SEARCH_APPLIED_KEY, "")
+    with st.form("sidebar_building_search", clear_on_submit=False, border=False):
+        raw: str = st.text_input(
+            "건물 검색",
+            value=applied,
+            placeholder="예: 서울 광역자원순환센터",
+            label_visibility="collapsed",
+            key="sidebar_search_raw",
+        )
+        cols = st.columns([3, 1])
+        with cols[0]:
+            submitted = st.form_submit_button("검색", use_container_width=True)
+        with cols[1]:
+            cleared = st.form_submit_button("초기화", use_container_width=True)
+    next_applied = resolve_search_state(
+        raw=raw, submitted=submitted, cleared=cleared, current_applied=applied
+    )
+    if next_applied != applied:
+        st.session_state[_SEARCH_APPLIED_KEY] = next_applied
+    return next_applied
 
 
 def _find_building(suppliers: pd.DataFrame, search_term: str) -> dict[str, object] | None:

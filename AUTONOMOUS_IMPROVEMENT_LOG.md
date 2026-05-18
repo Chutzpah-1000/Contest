@@ -462,7 +462,40 @@ uv run streamlit run app/main.py  # 앱 실행
 
 ---
 
-## 최종 점수 (Round 19 기준)
+## Round 20 — page-subtitle 인라인 style → 디자인 토큰 (2026-05-18)
+
+- **Branch**: `agent/round-20-h1-spacing-token`
+- **Scores (before → after)**: 코드 품질 9 → 9 / 완성도 9 → 9 (인라인 스타일 1건 제거)
+- **Lowest area**: 코드 품질·완성도 동률. `app/main.py:46` H1 부제에 `style='font-size:14px;color:#666A70;margin-bottom:18px;line-height:1.45;'` 인라인 — Design.md 토큰(`--color-muted` 등) 우회.
+
+### Planned improvement (후보 풀 C2 소진 — 본 세션 마지막 라운드)
+- `app/main.py`: 인라인 `<p style="...">` → `<p class='page-subtitle'>`.
+- `app/components/cards.py` `_DESIGN_CSS`: `.page-subtitle` 클래스 정의 (color는 `--color-muted` 토큰 사용).
+
+### Files changed
+- `app/main.py` — 1줄 인라인 style 제거 → 클래스 사용
+- `app/components/cards.py` — `.page-subtitle` CSS 추가 (4줄)
+
+### Verification
+- `uv run ruff check .` → All checks passed
+- `uv run ruff format .` → 41 files left unchanged
+- `uv run pyright` → 0 errors, 136 warnings
+- `uv run pytest` → **50 passed** 유지, coverage 65.67% 유지
+
+### Commit
+- `polish(ui): H1 부제 인라인 style → page-subtitle 클래스로 토큰화`
+
+### Notes — 세션 종료 핸드오프
+- 이번 세션 실행 라운드: **Round 11 → Round 20 (10 라운드)**. AGENTS.md §11 의 한 라운드 20분 규칙 준수, 모든 라운드 검증 4종 통과 후 커밋.
+- 모든 영역 9점 동률 도달. 다음 세션은 **10점 진입**을 목표로 큰 단위 검증(시연 환경 e2e, 실 데이터 갱신, GitHub PR 머지 흐름)이 적합.
+- 후보 풀 잔여:
+  - 완성도 **C1**(모바일 KPI 가독성), **C3**(footer GitHub 링크 — 사용자 컨펌 필요)
+  - 성능 **E1**(캐시 키 hash — 캐시 무효화 리스크, 사용자 컨펌 권장)
+- 후속 에이전트는 AGENTS.md §11.1 체크리스트 따라 본 마지막 라운드 엔트리부터 읽고 시작할 것. 모든 round-NN 브랜치는 origin 에 push 되었고 CI 그린 확인.
+
+---
+
+## 최종 점수 (Round 20 기준)
 | 영역 | 점수 |
 |------|------|
 | 기능 완성도 | 9 |

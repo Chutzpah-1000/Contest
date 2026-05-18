@@ -63,6 +63,10 @@ h1 {
   font-size:24px !important; font-weight:700 !important;
   color:var(--color-text) !important; margin-bottom:0 !important;
 }
+.page-subtitle {
+  font-size:14px;color:var(--color-muted);
+  margin-top:4px;margin-bottom:18px;line-height:1.45;
+}
 
 /* ── KPI grid ── */
 .kpi-grid {

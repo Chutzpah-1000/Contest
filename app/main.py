@@ -43,7 +43,7 @@ def main() -> None:
 
     st.markdown(
         "<h1>서울 유출지하수 매칭</h1>"
-        "<p style='font-size:14px;color:#666A70;margin-bottom:18px;line-height:1.45;'>"
+        "<p class='page-subtitle'>"
         "서울시 공공데이터 기반 유출지하수 공급처 · 수요처 매칭 분석</p>",
         unsafe_allow_html=True,
     )

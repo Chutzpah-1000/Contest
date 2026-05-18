@@ -55,7 +55,7 @@ def main() -> None:
         metrics=data.epiphany_metrics,
     )
     render_epiphany_cards(selected.metrics)
-    render_solution_summary(selected.solution, selected.flows)
+    render_solution_summary(selected.solution, selected.flows, radius_m=radius_m)
 
     js_key = _kakao_js_key()
     if not js_key:

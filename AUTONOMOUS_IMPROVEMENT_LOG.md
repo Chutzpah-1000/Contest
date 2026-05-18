@@ -250,7 +250,47 @@ uv run streamlit run app/main.py  # 앱 실행
 
 ---
 
-## 최종 점수 (Round 13 기준)
+## Round 14 — 매칭 솔루션 카드 라디우스 메타 (2026-05-18)
+
+- **Branch**: `agent/round-14-match-radius-meta`
+- **Scores (before → after)**:
+  - 기능 완성도: 9 → 9
+  - 사용자 경험: 9 → 9
+  - 안정성: 9 → 9
+  - 성능: 9 → 9
+  - 코드 품질: 9 → 9
+  - 완성도: 9 → 9 (내부 신뢰도 ↑)
+- **Lowest area**: 동률 9. 사용자 핵심 플로우(라디우스 슬라이더 변경 → 솔루션 갱신)의 가시성이 약했음 — 현재 어떤 반경의 솔루션을 보고 있는지/매칭 라인이 몇 건인지 카드에 표시 0건.
+
+### Planned improvement (후보 풀 B2 소진)
+`render_solution_summary` 시그니처에 `radius_m: int | None = None` 추가. 섹션 헤더에 `반경 1km · 매칭 N건` 메타를 우측 정렬로 표시. `main.py` 호출부에서 사이드바 radius_m 전달.
+
+### Files changed
+- `app/components/cards.py`
+  - `.section-header` flex 레이아웃 CSS 추가 (label 좌측 · meta 우측).
+  - `.section-meta` 톤 (muted 11px) 추가.
+  - `render_solution_summary` 시그니처에 `radius_m` 옵션 추가, 메타 HTML 분기 렌더.
+- `app/main.py`
+  - `render_solution_summary(selected.solution, selected.flows, radius_m=radius_m)` 로 호출 갱신.
+
+### Verification
+- `uv run ruff check --fix .` → 1 error fixed (자동), 0 remaining
+- `uv run ruff format .` → 1 file reformatted, 40 unchanged
+- `uv run pyright` → 0 errors, 136 warnings
+- `uv run pytest` → **43 passed** 유지, coverage 64.99%
+
+### Commit
+- `improve(cards): 매칭 솔루션 요약 카드에 선택 반경·매칭 건수 메타 표시`
+
+### Notes (다음 라운드 후보 풀 잔여)
+- 안정성 A2·A3 (sidebar 빈 DF, load_app_data FNF 회귀 가드)
+- 기능 완성도 B3 (ETL mtime)
+- 완성도 C1·C2·C3, 코드 품질 D1·D2, 성능 E1
+- 다음 라운드 후보: **A2 sidebar 빈 DF 회귀 테스트** (안정성 회귀 가드) — 코드 변경 없이 테스트만 추가, 안전.
+
+---
+
+## 최종 점수 (Round 14 기준)
 | 영역 | 점수 |
 |------|------|
 | 기능 완성도 | 9 |

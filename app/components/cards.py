@@ -107,12 +107,19 @@ h1 {
 .kpi-source-body b {color:var(--color-text);font-weight:600;}
 .kpi-source-body div + div {margin-top:3px;}
 
-/* ── Section label ── */
+/* ── Section header (label + meta) ── */
+.section-header {
+  display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+  margin-bottom:6px;margin-top:2px;
+}
 .section-label {
   font-size:11px;font-weight:600;color:var(--color-muted);
   text-transform:uppercase;letter-spacing:.05em;
-  margin-bottom:6px;margin-top:2px;
 }
+.section-meta {
+  font-size:11px;color:var(--color-muted);font-weight:500;
+}
+.section-meta b {color:var(--color-text);font-weight:600;}
 
 /* ── Match summary grid ── */
 .match-grid {
@@ -221,11 +228,22 @@ def render_epiphany_cards(metrics: pd.DataFrame) -> None:
     st.markdown(f'<div class="kpi-grid">{cells}</div>', unsafe_allow_html=True)
 
 
-def render_solution_summary(solution: pd.DataFrame, flows: pd.DataFrame) -> None:
-    """Render a compact matching solution summary."""
+def render_solution_summary(
+    solution: pd.DataFrame,
+    flows: pd.DataFrame,
+    radius_m: int | None = None,
+) -> None:
+    """Render a compact matching solution summary.
+
+    Args:
+        solution: 선택된 매칭 솔루션 1행 데이터프레임.
+        flows: 솔루션에 포함된 공급-수요 매칭 라인.
+        radius_m: 사이드바에서 선택된 매칭 반경(m). 전달되면 섹션 레이블 옆에 메타가 표기된다.
+    """
     objective = sum(numeric_values(solution, ("objective_krw",), 0.0))
     coverage = sum(numeric_values(solution, ("coverage_rate",), 0.0))
     matched = sum(numeric_values(flows, ("ton_per_day",), 0.0))
+    n_flows = len(flows)
 
     rows = [
         ("일 매칭량", f"{matched:,.0f} 톤", ""),
@@ -239,7 +257,18 @@ def render_solution_summary(solution: pd.DataFrame, flows: pd.DataFrame) -> None
         f"</div>"
         for label, value, cls in rows
     )
+
+    meta_html = ""
+    if radius_m is not None:
+        radius_label = f"{radius_m:,}m" if radius_m < 1000 else f"{radius_m // 1000}km"
+        meta_html = (
+            f'<span class="section-meta">반경 {escape(radius_label)} · 매칭 {n_flows}건</span>'
+        )
+
     st.markdown(
-        f'<div class="section-label">매칭 솔루션 요약</div><div class="match-grid">{cells}</div>',
+        f'<div class="section-header">'
+        f'<span class="section-label">매칭 솔루션 요약</span>{meta_html}'
+        f"</div>"
+        f'<div class="match-grid">{cells}</div>',
         unsafe_allow_html=True,
     )

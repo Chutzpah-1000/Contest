@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 
 import pandas as pd
-
-from etl.transform.normalize import numeric_values, string_values
 
 
 @dataclass(frozen=True)
@@ -58,11 +57,20 @@ def metric_value(metrics: pd.DataFrame, metric_name: str) -> float:
     """Read a single metric value from a metrics table.
 
     Returns:
-        Metric value or 0 when missing.
+        Metric value or 0.0 when missing.
     """
-    names = string_values(metrics, ("metric_name",), "")
-    values = numeric_values(metrics, ("metric_value",), 0.0)
-    for index, name in enumerate(names):
-        if name == metric_name:
-            return values[index]
-    return 0.0
+    if (
+        metrics.empty
+        or "metric_name" not in metrics.columns
+        or "metric_value" not in metrics.columns
+    ):
+        return 0.0
+    mask = metrics["metric_name"] == metric_name
+    if not mask.any():
+        return 0.0
+    raw: object = metrics.loc[mask, "metric_value"].iloc[0]
+    try:
+        value = float(raw)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return 0.0
+    return value if math.isfinite(value) else 0.0

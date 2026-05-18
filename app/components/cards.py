@@ -27,12 +27,29 @@ _DESIGN_CSS = """
   --color-risk: #B54708;
 }
 
-/* ── Hide Streamlit chrome ── */
+/* ── Hide Streamlit chrome (but keep sidebar collapse/expand button) ── */
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
-header[data-testid="stHeader"] {visibility: hidden;}
-[data-testid="stToolbar"] {visibility: hidden;}
 [data-testid="stDecoration"] {display: none;}
+header[data-testid="stHeader"] {
+  background: transparent !important;
+  visibility: visible !important;
+  height: auto !important;
+}
+/* Hide only the hamburger/toolbar items inside the header, not the whole header */
+header[data-testid="stHeader"] [data-testid="stToolbar"] {visibility: hidden !important;}
+
+/* Force every known variant of the sidebar collapse/expand button to stay visible */
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="collapsedControl"],
+[data-testid="stSidebarCollapseButton"],
+[data-testid="baseButton-headerNoPadding"],
+button[kind="headerNoPadding"] {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+  z-index: 999999 !important;
+}
 
 /* ── Global ── */
 html, body, [data-testid="stAppViewContainer"] {

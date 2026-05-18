@@ -32,7 +32,10 @@ _SUPPLIER_COLS: list[str] = [
     "daily_avg_supply_ton",
     "water_quality_grade",
     "report_status",
+    "reportable",
+    "geo_method",
 ]
+_SIDE_PANEL_LIMIT: int = 500
 _PARK_COLS: list[str] = ["demand_id", "name", "latitude", "longitude", "area_m2"]
 _ROAD_COLS: list[str] = ["demand_id", "name", "centroid_lat", "centroid_lng", "length_m"]
 _FLOW_COLS: list[str] = ["supplier_id", "demand_id", "ton_per_day"]
@@ -123,11 +126,19 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","N
         <span id="sup-count" class="cnt-badge">0</span>
         <div class="filter-tabs">
           <button class="filter-tab active" id="tab-all">전체</button>
+          <button class="filter-tab" id="tab-reportable">신고대상</button>
           <button class="filter-tab" id="tab-matched">매칭됨</button>
         </div>
       </div>
-      <div id="stats-bar">일 발생량 <b id="stat-ton">-</b> 톤 · 매칭 <b id="stat-matched">-</b>건</div>
+      <div id="stats-bar">
+        일 발생량 <b id="stat-ton">-</b> 톤 ·
+        신고대상 <b id="stat-reportable">-</b>건 ·
+        매칭 <b id="stat-matched">-</b>건
+      </div>
       <div id="sup-list"></div>
+      <div id="list-footer" style="padding:8px 13px;border-top:1px solid #F0F0EE;font-size:10px;color:#888;background:#FAFAF9;flex-shrink:0;display:none;">
+        목록은 일 발생량 상위 <b id="list-shown">0</b>개 표시 (총 <b id="list-total">0</b>개 마커는 지도 클릭으로 조회).
+      </div>
     </div>
     <div id="detail-view">
       <div class="panel-hdr">
@@ -145,7 +156,8 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","N
     </div>
     <div id="legend">
       <div class="lg-item"><div class="lg-dot" style="background:#3b82f6;"></div>매칭 공급처</div>
-      <div class="lg-item"><div class="lg-dot" style="background:#ef4444;"></div>미매칭 공급처</div>
+      <div class="lg-item"><div class="lg-dot" style="background:#f59e0b;"></div>신고대상 (미매칭)</div>
+      <div class="lg-item"><div class="lg-dot" style="background:#9CA3AF;"></div>일반 유출지하수</div>
       <div class="lg-item"><div class="lg-dot" style="background:#f97316;"></div>수요처</div>
       <div class="lg-item"><div class="lg-line" style="background:#22c55e;"></div>매칭 흐름</div>
     </div>
@@ -197,30 +209,37 @@ function showDetail(html){
 document.getElementById('back-btn').onclick=showList;
 document.getElementById('btn-zi').onclick=function(){if(_map)_map.setLevel(_map.getLevel()-1);};
 document.getElementById('btn-zo').onclick=function(){if(_map)_map.setLevel(_map.getLevel()+1);};
-// Filter tabs — wired after kakao.maps.load builds supItems
+// Filter mode: 'all' | 'reportable' | 'matched'
+var _filterMode='all';
+function _passes(s){
+  if(_filterMode==='matched')return !!window._matchedSet&&!!window._matchedSet[s.supplier_id];
+  if(_filterMode==='reportable')return !!s.reportable;
+  return true;
+}
 function _applyFilter(){
-  // Called after supItems is built; no-op before that
-  if(!window._supItems||!window._sortedSup||!window._matchedSet)return;
-  var cnt=0,totTon=0,matched=0;
+  if(!window._supItems||!window._displayedSup||!window._matchedSet)return;
+  var cnt=0;
   window._supItems.forEach(function(item,idx){
-    var s=window._sortedSup[idx];
-    var show=!_filterMatched||!!window._matchedSet[s.supplier_id];
+    var s=window._displayedSup[idx];
+    var show=_passes(s);
     item.style.display=show?'':'none';
-    if(show){cnt++;totTon+=(s.daily_avg_supply_ton||0);if(window._matchedSet[s.supplier_id])matched++;}
+    if(show)cnt++;
   });
   document.getElementById('sup-count').textContent=cnt;
-  document.getElementById('stat-ton').textContent=Math.round(totTon).toLocaleString();
-  document.getElementById('stat-matched').textContent=matched;
+  document.getElementById('list-shown').textContent=cnt;
+  if(window._clusterers)window._clusterers.rebuild();
 }
-function _setFilter(matched){
-  _filterMatched=matched;
-  document.getElementById('tab-all').className='filter-tab'+(matched?'':' active');
-  document.getElementById('tab-matched').className='filter-tab'+(matched?' active':'');
+function _setFilter(mode){
+  _filterMode=mode;
+  ['all','reportable','matched'].forEach(function(m){
+    document.getElementById('tab-'+m).className='filter-tab'+(m===mode?' active':'');
+  });
   _applyFilter();
   showList();
 }
-document.getElementById('tab-all').onclick=function(){_setFilter(false);};
-document.getElementById('tab-matched').onclick=function(){_setFilter(true);};
+document.getElementById('tab-all').onclick=function(){_setFilter('all');};
+document.getElementById('tab-reportable').onclick=function(){_setFilter('reportable');};
+document.getElementById('tab-matched').onclick=function(){_setFilter('matched');};
 </script>
 <script>
 // Kakao SDK에서 srcdoc iframe에서 http://t1.daumcdn.net 스크립트를 주입하는 문제:
@@ -245,7 +264,7 @@ document.getElementById('tab-matched').onclick=function(){_setFilter(true);};
 })();
 </script>
 <script type="text/javascript"
-  src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=__JS_KEY__&autoload=false"
+  src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=__JS_KEY__&autoload=false&libraries=clusterer"
   onload="__sdkLoaded=true;"
   onerror="__status('❌ Kakao SDK 스크립트 로드 실패. JS키가 비어있거나 CSP 차단.',true);"></script>
 <script>
@@ -301,7 +320,10 @@ function buildSupDetail(s,matched){
   var status=smap[s.report_status]||s.report_status||'-';
   var badges='';
   if(matched)badges+='<span class="d-badge mt">매칭 완료</span>';
-  if(s.report_status==='reported')badges+='<span class="d-badge rp">신고대상 ✓</span>';
+  if(s.reportable)badges+='<span class="d-badge rp">신고대상 ✓</span>';
+  var geoNote=(s.geo_method==='hash_scatter')
+    ?'<div style="margin-top:10px;padding:6px 8px;background:#FFF8EC;border:1px solid #F3D5C7;border-radius:4px;font-size:10px;color:#B54708;line-height:1.4;">📍 좌표 정보 미제공 자료 — 주소 해시 기반 추정 위치입니다.</div>'
+    :'';
   return '<div class="d-body">'
     +'<div class="d-name">'+(s.name||'')+'</div>'
     +'<div class="d-addr">'+(s.address||'-')+'</div>'
@@ -313,31 +335,48 @@ function buildSupDetail(s,matched){
     +'<div><div class="d-mlbl">신고상태</div><div class="d-mval">'+status+'</div></div>'
     +'</div>'
     +(badges?'<div style="margin-top:8px">'+badges+'</div>':'')
+    +geoNote
     +'</div>';
 }
 
-// Sort suppliers by ton/day descending for list
+// Aggregate stats over the FULL supplier set
+var totalTon=0,totalReportable=0,totalMatched=0;
+SUPPLIERS.forEach(function(s){
+  totalTon+=(s.daily_avg_supply_ton||0);
+  if(s.reportable)totalReportable++;
+  if(matchedSet[s.supplier_id])totalMatched++;
+});
+document.getElementById('stat-ton').textContent=Math.round(totalTon).toLocaleString();
+document.getElementById('stat-reportable').textContent=totalReportable.toLocaleString();
+document.getElementById('stat-matched').textContent=totalMatched.toLocaleString();
+
+// Sort by ton desc; side panel limits to top N for DOM perf
 var sortedSup=SUPPLIERS.slice().sort(function(a,b){
   return (b.daily_avg_supply_ton||0)-(a.daily_avg_supply_ton||0);
 });
-window._sortedSup=sortedSup;window._matchedSet=matchedSet;
-var supItems=[];
+var SIDE_LIMIT=__SIDE_PANEL_LIMIT__;
+var displayedSup=sortedSup.slice(0,SIDE_LIMIT);
+window._displayedSup=displayedSup;window._matchedSet=matchedSet;
+document.getElementById('sup-count').textContent=displayedSup.length;
+if(sortedSup.length>SIDE_LIMIT){
+  document.getElementById('list-footer').style.display='block';
+  document.getElementById('list-total').textContent=sortedSup.length.toLocaleString();
+  document.getElementById('list-shown').textContent=displayedSup.length.toLocaleString();
+}
+
 var supListEl=document.getElementById('sup-list');
-document.getElementById('sup-count').textContent=sortedSup.length;
-
-// Lookup: supplier_id -> index in sortedSup
-var supIdxMap={};
-sortedSup.forEach(function(s,i){supIdxMap[s.supplier_id]=i;});
-
-// Build list DOM
-sortedSup.forEach(function(s,idx){
+var supItems=[];
+displayedSup.forEach(function(s,idx){
   var matched=!!matchedSet[s.supplier_id];
+  var rankCls=matched?'m':(s.reportable?'u':'u');
   var item=document.createElement('div');
   item.className='sup-item';
-  item.innerHTML='<div class="sup-rank '+(matched?'m':'u')+'">'+(idx+1)+'</div>'
+  item.innerHTML='<div class="sup-rank '+rankCls+'">'+(idx+1)+'</div>'
     +'<div class="sup-info">'
     +'<div class="sup-name">'+(s.name||'')+'</div>'
-    +'<div class="sup-ton">'+((s.daily_avg_supply_ton||0).toFixed(0))+' 톤/일</div>'
+    +'<div class="sup-ton">'+((s.daily_avg_supply_ton||0).toFixed(0))+' 톤/일'
+      +(s.reportable?' · <span style="color:#B54708">신고대상</span>':'')
+    +'</div>'
     +'<div class="sup-addr">'+(s.address||'')+'</div>'
     +'</div>';
   (function(s,matched,item){
@@ -353,33 +392,55 @@ sortedSup.forEach(function(s,idx){
   supItems.push(item);
 });
 window._supItems=supItems;
-_applyFilter();
 
-// Build supplier markers (pin style)
+// Shared marker images keyed by category — huge perf win vs per-marker SVG
+var imgMatched=makePinImg('#3b82f6',20);
+var imgReportable=makePinImg('#f59e0b',18);
+var imgRegular=makeCircImg('#9CA3AF',6);
+
+// Build every supplier marker; clusterer manages visibility per zoom
+var markersAll=[],markersReportable=[],markersMatched=[];
 SUPPLIERS.forEach(function(s){
   var matched=!!matchedSet[s.supplier_id];
-  var color=matched?'#3b82f6':'#ef4444';
-  var w=Math.max(14,Math.min(28,Math.round(10+(s.daily_avg_supply_ton||100)/SUPPLY_SCALE*14)));
+  var img=matched?imgMatched:(s.reportable?imgReportable:imgRegular);
   var marker=new kakao.maps.Marker({
-    map:_map,
     position:new kakao.maps.LatLng(s.latitude,s.longitude),
-    image:makePinImg(color,w),
+    image:img,
     title:s.name||''
   });
-  var listIdx=supIdxMap[s.supplier_id];
-  var item_el=(listIdx!==undefined)?supItems[listIdx]:null;
-  (function(s,matched,item_el){
+  (function(s,matched){
     kakao.maps.event.addListener(marker,'click',function(){
       _map.setCenter(new kakao.maps.LatLng(s.latitude,s.longitude));
-      if(item_el){
-        if(_activeItem)_activeItem.classList.remove('active');
-        _activeItem=item_el;item_el.classList.add('active');
-        item_el.scrollIntoView({block:'nearest'});
-      }
       showDetail(buildSupDetail(s,matched));
     });
-  })(s,matched,item_el);
+  })(s,matched);
+  markersAll.push(marker);
+  if(s.reportable)markersReportable.push(marker);
+  if(matched)markersMatched.push(marker);
 });
+
+var clusterer=new kakao.maps.MarkerClusterer({
+  map:_map,
+  averageCenter:true,
+  minLevel:5,
+  gridSize:60,
+  disableClickZoom:false,
+  styles:[{
+    width:'34px',height:'34px',background:'rgba(29,127,95,0.85)',color:'#fff',
+    borderRadius:'17px',textAlign:'center',lineHeight:'34px',fontSize:'12px',fontWeight:'700'
+  }]
+});
+clusterer.addMarkers(markersAll);
+window._clusterers={
+  rebuild:function(){
+    var pool=markersAll;
+    if(_filterMode==='reportable')pool=markersReportable;
+    else if(_filterMode==='matched')pool=markersMatched;
+    clusterer.clear();
+    clusterer.addMarkers(pool);
+  }
+};
+_applyFilter();
 
 // Park markers (circle)
 PARKS.forEach(function(p){
@@ -443,8 +504,11 @@ if(SEARCH_TERM){
       var matched2=!!matchedSet[sd.supplier_id];
       _map.setCenter(new kakao.maps.LatLng(sd.latitude,sd.longitude));
       _map.setLevel(4);
-      var it=supItems[i];
-      if(it){if(_activeItem)_activeItem.classList.remove('active');_activeItem=it;it.classList.add('active');}
+      if(i<supItems.length){
+        var it=supItems[i];
+        if(it){if(_activeItem)_activeItem.classList.remove('active');_activeItem=it;it.classList.add('active');
+        it.scrollIntoView({block:'nearest'});}
+      }
       showDetail(buildSupDetail(sd,matched2));
       break;
     }
@@ -473,8 +537,6 @@ def build_kakao_map_html(
     Returns:
         HTML string suitable for st.components.v1.html().
     """
-    if "reportable" in suppliers.columns:
-        suppliers = suppliers.loc[suppliers["reportable"].astype(bool)]
     matched_ids: set[str] = (
         set(flows["supplier_id"].astype(str).tolist()) if not flows.empty else set()
     )
@@ -484,6 +546,7 @@ def build_kakao_map_html(
         .replace("__CENTER_LAT__", str(center_lat))
         .replace("__CENTER_LNG__", str(center_lng))
         .replace("__ZOOM__", str(zoom))
+        .replace("__SIDE_PANEL_LIMIT__", str(_SIDE_PANEL_LIMIT))
         .replace("__SUPPLIERS_JSON__", _df_to_json(suppliers, _SUPPLIER_COLS))
         .replace("__PARKS_JSON__", _df_to_json(parks, _PARK_COLS))
         .replace("__ROADS_JSON__", _df_to_json(roads, _ROAD_COLS))

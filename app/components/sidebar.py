@@ -66,6 +66,31 @@ def render_sidebar(suppliers: pd.DataFrame) -> tuple[int, str]:
                 margin-top:16px;padding-top:12px;border-top:1px solid #E4E4E0;
                 font-size:10px;color:#888;line-height:1.6;
             }
+            /* 사이드바 검색 폼 버튼 톤 — Design.md monochrome data-product */
+            [data-testid="stSidebar"] [data-testid="stForm"] button {
+                background:#FFFFFF !important;
+                border:1px solid #E4E4E0 !important;
+                color:#111111 !important;
+                font-size:12px !important;
+                font-weight:600 !important;
+                border-radius:6px !important;
+                padding:6px 10px !important;
+                box-shadow:none !important;
+                transition:border-color .12s ease, color .12s ease, background .12s ease;
+            }
+            [data-testid="stSidebar"] [data-testid="stForm"] button:hover {
+                border-color:#0071E3 !important;
+                color:#0071E3 !important;
+                background:#F5F9FF !important;
+            }
+            [data-testid="stSidebar"] [data-testid="stForm"] button:focus {
+                outline:none !important;
+                border-color:#0071E3 !important;
+                box-shadow:0 0 0 2px rgba(0,113,227,.18) !important;
+            }
+            [data-testid="stSidebar"] [data-testid="stForm"] button:active {
+                background:#EAF2FB !important;
+            }
             </style>
             <div class="sb-header">
               <span class="sb-icon">&#128167;</span>
@@ -149,7 +174,7 @@ def _render_search_form() -> str:
         raw: str = st.text_input(
             "건물 검색",
             value=applied,
-            placeholder="예: 서울 광역자원순환센터",
+            placeholder="건물명으로 검색 (예: Heliocity)",
             label_visibility="collapsed",
             key="sidebar_search_raw",
         )

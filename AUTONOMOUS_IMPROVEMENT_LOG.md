@@ -134,7 +134,48 @@ uv run streamlit run app/main.py  # 앱 실행
 
 ---
 
-## 최종 점수 (Round 10 기준)
+## Round 11 — 사이드바 검색 폼 폴리시 (2026-05-18)
+
+- **Branch**: `agent/round-11-sidebar-polish`
+- **Scores (before → after)**:
+  - 기능 완성도: 8 → 8
+  - 사용자 경험: 9 → 9
+  - 안정성: 8 → 8
+  - 성능: 9 → 9
+  - 코드 품질: 9 → 9
+  - 완성도: 8 → 9
+- **Lowest area**: 완성도 — `st.form_submit_button` 두 개가 Streamlit 기본 빨강 톤이라 Design.md §3 monochrome 톤과 어색. placeholder 도 프롬프트 명시 문구 미반영.
+
+### Planned improvement
+프롬프트 §76-78 "먼저 할 일" 잔여 항목(검색·초기화 버튼 디자인, placeholder Heliocity 변경, 한국어 검색 가능) 흡수.
+
+### Files changed
+- `app/components/sidebar.py`
+  - 사이드바 폼 버튼 톤 CSS 추가: 흰 배경·1px border·`#0071E3` hover/focus·focus ring (사이드바 스코프 `[data-testid="stSidebar"] [data-testid="stForm"] button`)
+  - placeholder `"예: 서울 광역자원순환센터"` → `"건물명으로 검색 (예: Heliocity)"`
+- `tests/test_sidebar_search.py`
+  - `_find_building()` 한국어 부분일치 회귀 테스트 추가 (`"헬리오"` → "강남 헬리오시티")
+  - import: `pandas`, `_find_building`
+
+### Verification
+- `uv run ruff check --fix .` → All checks passed
+- `uv run ruff format .` → 41 files left unchanged
+- `uv run pyright` → 0 errors, 136 warnings (baseline 그대로)
+- `uv run pytest` → **42 passed** (41 → 42), coverage 65.00% → **65.72%**
+
+### Commit
+- `polish(sidebar): 검색 폼 버튼 톤·placeholder + 한국어 검색 테스트`
+
+### Notes (다음 라운드 후보 풀)
+- 안정성 후보 A1·A2·A3 (kakao_map 회귀 테스트, sidebar 빈 DF 가드, load_app_data FNF 가드)
+- 기능 완성도 B1 (ⓘ 출처 popover) — Design.md §5 1급 UX
+- 완성도 C1·C2·C3 (모바일 KPI 가독성, H1 spacing 토큰, footer GitHub 링크)
+- 코드 품질 D1·D2 (kakao_map 매직상수·sidebar CSS 모듈상수)
+- 다음 라운드 후보 1순위: **A1 kakao_map 회귀 테스트** (안정성·코드품질 동시 영향)
+
+---
+
+## 최종 점수 (Round 11 기준)
 | 영역 | 점수 |
 |------|------|
 | 기능 완성도 | 8 |
@@ -142,4 +183,4 @@ uv run streamlit run app/main.py  # 앱 실행
 | 안정성/버그 | 8 |
 | 성능 | 9 |
 | 코드 품질 | 9 |
-| 완성도/폴리시 | 8 |
+| 완성도/폴리시 | 9 |

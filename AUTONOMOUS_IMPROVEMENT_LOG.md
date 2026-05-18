@@ -54,3 +54,45 @@ uv run streamlit run app/main.py  # 앱 실행
 - `polish: 네이버지도 스타일 지도 UI — 좌측 목록 패널·핀 마커·상세 패널·범례`
 
 ---
+
+## Round 2 — KPI 카드·Streamlit 폴리시
+- **Branch**: `agent/round-2-page-polish`
+- KPI 카드 캡션·섹션 레이블·수요 충족률 data 색·Streamlit 크롬 숨김
+
+## Round 3 — 사이드바 브랜딩
+- **Branch**: `agent/round-3-sidebar-polish`
+- 브랜딩 헤더 (💧)·컨트롤 라벨 통일·데이터 출처 푸터
+
+## Round 4 — 안정성 개선
+- **Branch**: `agent/round-4-stability`
+- `_filter_by_solution_id` pandas native 필터·`main.py` FileNotFoundError 오류 경계
+
+## Round 5 — metric_value 개선
+- **Branch**: `agent/round-5-metric-value`
+- pandas native 필터·불필요한 normalize 임포트 제거
+
+## Round 6 — 지도 필터 탭
+- **Branch**: `agent/round-6-map-section-header`
+- 지도 패널에 "전체/매칭됨" 필터 탭 추가
+
+## Round 7 — 섹션 레이블
+- **Branch**: `agent/round-7-map-header-label`
+- 지도 섹션 레이블 추가·H1 인라인 스타일 정리
+
+## Round 8 — 테스트 커버리지
+- **Branch**: `agent/round-8-test-coverage`
+- 8개 테스트 추가 (커버리지 63.8% → 65.1%)
+
+## Round 9 — 통계 바
+- **Branch**: `agent/round-9-panel-stats`
+- 지도 패널에 발생량 합계·매칭 건수 통계 바 추가
+
+## 최종 점수 (Round 9 기준)
+| 영역 | 점수 |
+|------|------|
+| 기능 완성도 | 8 |
+| 사용자 경험 | 8 |
+| 안정성/버그 | 8 |
+| 성능 | 8 |
+| 코드 품질 | 9 |
+| 완성도/폴리시 | 8 |

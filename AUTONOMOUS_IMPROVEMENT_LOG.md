@@ -290,7 +290,46 @@ uv run streamlit run app/main.py  # 앱 실행
 
 ---
 
-## 최종 점수 (Round 14 기준)
+## Round 15 — _find_building 가드 회귀 테스트 (2026-05-18)
+
+- **Branch**: `agent/round-15-find-building-guard-tests`
+- **Scores (before → after)**:
+  - 기능 완성도: 9 → 9
+  - 사용자 경험: 9 → 9
+  - 안정성: 9 → 9 (회귀 가드 ↑)
+  - 성능: 9 → 9
+  - 코드 품질: 9 → 9
+  - 완성도: 9 → 9
+- **Lowest area**: 동률 9. 안정성 영역에 잠재 회귀 — `_find_building` 의 가드(빈 DF, name 컬럼 결손, 빈 검색어, 매칭 0건) 4개가 코드에는 있는데 회귀 테스트 0건. 미래 리팩터에서 사용자 입력 정상 검색 플로우만 보고 가드를 제거할 위험.
+
+### Planned improvement (후보 풀 A2 소진)
+`tests/test_sidebar_search.py` 에 4개 회귀 테스트 추가:
+- `test_find_building_empty_dataframe_returns_none`
+- `test_find_building_missing_name_column_returns_none`
+- `test_find_building_empty_search_term_returns_none`
+- `test_find_building_no_match_returns_none`
+
+### Files changed
+- `tests/test_sidebar_search.py` — 4개 회귀 테스트 추가
+
+### Verification
+- `uv run ruff check .` → All checks passed
+- `uv run ruff format .` → 41 files left unchanged
+- `uv run pyright` → 0 errors, 136 warnings
+- `uv run pytest` → **47 passed** (43 → 47), coverage 64.99% → **65.31%**
+
+### Commit
+- `test(sidebar): _find_building 4종 가드 회귀 테스트 (빈 DF · name 컬럼 결손 · 빈 term · no match)`
+
+### Notes (다음 라운드 후보 풀 잔여)
+- 안정성 A3 (load_app_data FNF 회귀 가드)
+- 기능 완성도 B3 (ETL mtime 사이드바 footer)
+- 완성도 C1·C2·C3, 코드 품질 D1·D2, 성능 E1
+- 다음 라운드 1순위: **B3 ETL mtime** — 사용자가 데이터가 최신인지 즉시 알 수 있게 사이드바 footer 에 마지막 parquet 갱신 시각 표시.
+
+---
+
+## 최종 점수 (Round 15 기준)
 | 영역 | 점수 |
 |------|------|
 | 기능 완성도 | 9 |

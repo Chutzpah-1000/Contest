@@ -37,6 +37,36 @@ def test_resolve_idle_with_empty_state_returns_empty() -> None:
     assert not resolve_search_state(raw="", submitted=False, cleared=False, current_applied="")
 
 
+def test_find_building_empty_dataframe_returns_none() -> None:
+    assert _find_building(pd.DataFrame(), "anything") is None
+
+
+def test_find_building_missing_name_column_returns_none() -> None:
+    suppliers = pd.DataFrame({"other_col": ["x", "y"]})
+    assert _find_building(suppliers, "search") is None
+
+
+def test_find_building_empty_search_term_returns_none() -> None:
+    suppliers = pd.DataFrame([{"name": "A", "address": "a"}])
+    assert _find_building(suppliers, "") is None
+
+
+def test_find_building_no_match_returns_none() -> None:
+    suppliers = pd.DataFrame(
+        [
+            {
+                "name": "광역자원순환센터",
+                "address": "마포구",
+                "daily_avg_supply_ton": 100.0,
+                "water_quality_grade": 2,
+                "report_status": "discharging",
+                "reportable": True,
+            }
+        ]
+    )
+    assert _find_building(suppliers, "존재하지않는검색어xyz") is None
+
+
 def test_find_building_matches_korean_substring() -> None:
     suppliers = pd.DataFrame(
         [

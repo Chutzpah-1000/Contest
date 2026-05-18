@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 import streamlit as st
 
+from app.services.data import last_data_refresh
 from app.services.roi import building_roi
 
 if TYPE_CHECKING:
@@ -130,11 +131,18 @@ def render_sidebar(suppliers: pd.DataFrame) -> tuple[int, str]:
             label_visibility="collapsed",
         )  # type: ignore[assignment]  # st.radio returns Any; guaranteed int from options list
 
+        refreshed_at = last_data_refresh()
+        refresh_line = (
+            f"데이터 갱신: {refreshed_at.strftime('%Y-%m-%d %H:%M')} KST<br>"
+            if refreshed_at is not None
+            else ""
+        )
         st.markdown(
-            "<div class='sb-footer'>"
-            "서울 열린데이터광장 · 기상청 ASOS<br>"
-            "2026 서울시 빅데이터 경진대회 창업 부문"
-            "</div>",
+            f"<div class='sb-footer'>"
+            f"{refresh_line}"
+            f"서울 열린데이터광장 · 기상청 ASOS<br>"
+            f"2026 서울시 빅데이터 경진대회 창업 부문"
+            f"</div>",
             unsafe_allow_html=True,
         )
 

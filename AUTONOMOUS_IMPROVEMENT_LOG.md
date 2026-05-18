@@ -329,7 +329,49 @@ uv run streamlit run app/main.py  # 앱 실행
 
 ---
 
-## 최종 점수 (Round 15 기준)
+## Round 16 — 사이드바 ETL 갱신 시각 표시 (2026-05-18)
+
+- **Branch**: `agent/round-16-data-refresh-mtime`
+- **Scores (before → after)**:
+  - 기능 완성도: 9 → 9
+  - 사용자 경험: 9 → 9
+  - 안정성: 9 → 9
+  - 성능: 9 → 9
+  - 코드 품질: 9 → 9
+  - 완성도: 9 → 9 (데이터 최신성 가시화)
+- **Lowest area**: 동률 9. 사용자가 "이 데이터가 최신인지" 알 수 없음 — 발표/시연에서 심사위원이 가장 먼저 묻는 질문 중 하나.
+
+### Planned improvement (후보 풀 B3 소진)
+`app/services/data.py` 에 `last_data_refresh()` 헬퍼 추가 — silver+gold parquet 중 가장 최근 mtime 을 KST datetime 으로 반환 (없으면 None). 5분 TTL `@st.cache_data`. 사이드바 footer 상단에 "데이터 갱신: YYYY-MM-DD HH:MM KST" 1줄 표시.
+
+### Files changed
+- `app/services/data.py`
+  - `KST: timezone = timezone(timedelta(hours=9))` 모듈 상수 추가.
+  - `last_data_refresh(data_dir=...) -> datetime | None` — silver/gold parquet glob → 최대 mtime → KST datetime.
+- `app/components/sidebar.py`
+  - `last_data_refresh()` 호출 결과를 footer 첫 줄에 출력 (None 이면 생략).
+  - `from app.services.data import last_data_refresh` 임포트 추가.
+- `tests/test_app.py`
+  - `test_last_data_refresh_returns_kst_datetime` (tmp_path 에 parquet 1개 생성 후 KST tz 확인)
+  - `test_last_data_refresh_returns_none_when_no_parquet` (빈 silver/gold 디렉토리)
+
+### Verification
+- `uv run ruff check .` → All checks passed
+- `uv run ruff format .` → 41 files left unchanged
+- `uv run pyright` → 0 errors, 136 warnings
+- `uv run pytest` → **49 passed** (47 → 49), coverage 65.31% → **65.56%**
+
+### Commit
+- `feat(data): 사이드바 footer 에 ETL 갱신 시각(KST) 표시 + last_data_refresh 헬퍼·테스트`
+
+### Notes (다음 라운드 후보 풀 잔여)
+- 안정성 A3 (load_app_data FNF 회귀 가드)
+- 완성도 C1·C2·C3, 코드 품질 D1·D2, 성능 E1
+- 다음 라운드 1순위: **C3 사이드바 footer GitHub 링크 / 라이선스 표기** — 본 라운드와 동일 컴포넌트, 작은 단위.
+
+---
+
+## 최종 점수 (Round 16 기준)
 | 영역 | 점수 |
 |------|------|
 | 기능 완성도 | 9 |

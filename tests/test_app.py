@@ -5,7 +5,7 @@ import math
 import pandas as pd
 
 from app.components.kakao_map import build_kakao_map_html
-from app.services.data import load_app_data
+from app.services.data import KST, last_data_refresh, load_app_data
 from app.services.matching import (
     _filter_by_solution_id,
     metric_value,
@@ -132,6 +132,22 @@ def test_metric_value_nan_returns_zero() -> None:
         {"metric_name": ["total_discharge_ton_day"], "metric_value": [float("nan")]}
     )
     assert metric_value(metrics, "total_discharge_ton_day") == 0.0
+
+
+def test_last_data_refresh_returns_kst_datetime(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    silver = tmp_path / "silver"
+    silver.mkdir()
+    p = silver / "suppliers.parquet"
+    p.write_bytes(b"\x00")
+    result = last_data_refresh(str(tmp_path))
+    assert result is not None
+    assert result.tzinfo == KST
+
+
+def test_last_data_refresh_returns_none_when_no_parquet(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    (tmp_path / "silver").mkdir()
+    (tmp_path / "gold").mkdir()
+    assert last_data_refresh(str(tmp_path)) is None
 
 
 def test_metric_value_returns_correct_float() -> None:

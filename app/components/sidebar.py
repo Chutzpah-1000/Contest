@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Final
 
 import streamlit as st
 
+from app.components.welcome_modal import reset_welcome_modal
 from app.services.data import last_data_refresh
 from app.services.roi import building_roi
 
@@ -58,6 +59,22 @@ _SIDEBAR_CSS: Final[str] = """
 .sb-footer {
     margin-top:16px;padding-top:12px;border-top:1px solid #E4E4E0;
     font-size:10px;color:#888;line-height:1.6;
+}
+[data-testid="stSidebar"] [data-testid="stButton"][data-key="sidebar_tutorial_replay"] button {
+    background:#FFFFFF !important;
+    border:1px solid #E4E4E0 !important;
+    color:#666A70 !important;
+    font-size:11px !important;
+    font-weight:600 !important;
+    border-radius:6px !important;
+    padding:6px 10px !important;
+    box-shadow:none !important;
+    width:100% !important;
+}
+[data-testid="stSidebar"] [data-testid="stButton"][data-key="sidebar_tutorial_replay"] button:hover {
+    border-color:#0071E3 !important;
+    color:#0071E3 !important;
+    background:#F5F9FF !important;
 }
 /* 사이드바 검색 input border — hover 없이도 항상 보이도록 검정 톤 */
 [data-testid="stSidebar"] [data-testid="stTextInput"] div[data-baseweb="input"],
@@ -151,6 +168,14 @@ def render_sidebar(suppliers: pd.DataFrame) -> tuple[int, str]:
             horizontal=True,
             label_visibility="collapsed",
         )  # type: ignore[assignment]  # st.radio returns Any; guaranteed int from options list
+
+        if st.button(
+            "튜토리얼 다시 보기",
+            key="sidebar_tutorial_replay",
+            help="환영 온보딩 모달을 처음 단계부터 다시 띄웁니다.",
+        ):
+            reset_welcome_modal()
+            st.rerun()
 
         refreshed_at = last_data_refresh()
         refresh_line = (

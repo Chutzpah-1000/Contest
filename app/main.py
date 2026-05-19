@@ -8,6 +8,7 @@ import streamlit.components.v1 as components
 from app.components.cards import inject_design_css, render_epiphany_cards, render_solution_summary
 from app.components.kakao_map import build_kakao_map_html
 from app.components.sidebar import render_sidebar
+from app.components.welcome_modal import render_welcome_modal
 from app.services.data import load_app_data
 from app.services.matching import select_solution
 
@@ -28,6 +29,7 @@ def main() -> None:
     """Render the Streamlit MVP app."""
     st.set_page_config(page_title="서울 유출지하수 매칭", layout="wide", page_icon="💧")
     inject_design_css()
+    render_welcome_modal()
 
     try:
         data = load_app_data()

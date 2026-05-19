@@ -526,7 +526,58 @@ uv run streamlit run app/main.py  # 앱 실행
 
 ---
 
-## 최종 점수 (Round 21 기준)
+## Round 22 — 환영 온보딩 모달 (지정 작업, 2026-05-19)
+
+- **Branch**: `agent/round-22-welcome-modal`
+- **Scores (before → after)**:
+  - 기능 완성도: 9 → 9 (지정 작업 신규 진입 가이드 추가)
+  - 사용자 경험: 9 → 9 (첫 진입 컨텍스트 보강)
+  - 안정성: 9 → 9 (테스트 9건 추가)
+  - 성능: 9 → 9
+  - 코드 품질: 9 → 9 (pyright 138 → 137 warning)
+  - 완성도: 9 → 9 (디자인 토큰 100% 준수)
+- **Lowest area**: 동률 9. 본 라운드는 자율 후보 풀이 아니라 `plans/프롬프트.md` 의 **"지정 할 일"** (L78~84) 기반.
+
+### Planned improvement
+페이지 첫 로드 시 환영 모달이 자동 표시되며, 4개 주요 기능을 Next 버튼으로 순차 소개한 뒤 마지막 페이지의 "시작하기" 버튼으로 닫혀 메인 페이지에 진입한다. 사이드바에 "튜토리얼 다시 보기" 버튼으로 재시작 경로 제공.
+
+### Files changed
+- `app/components/welcome_modal.py` — 신규
+  - `NamedTuple WelcomeStep(tag, icon, title, body)` + 4개 단계 정의 (FR-01·FR-02·FR-03·FR-05 매핑).
+  - `render_welcome_modal()` 공개 컨트롤러 — `st.session_state["welcome_modal_seen"]` 기준 자동 표시 분기.
+  - `reset_welcome_modal()` — 사이드바 재시작 버튼이 호출.
+  - `@st.dialog(width="large")` 데코레이션된 내부 다이얼로그 `_open_dialog()` — 진행 dots + 카드 + 카운터 + 이전/다음·시작하기 컬럼 버튼.
+  - `clamp_step(idx)` 순수 유틸 (테스트 가능 단위).
+- `app/main.py` — `from app.components.welcome_modal import render_welcome_modal` + `inject_design_css()` 직후 호출.
+- `app/components/sidebar.py`
+  - 푸터 영역에 `st.button("튜토리얼 다시 보기", key="sidebar_tutorial_replay", ...)` 추가 → `reset_welcome_modal()` + `st.rerun()`.
+  - `_SIDEBAR_CSS` 에 해당 버튼 톤 (1px border, hover `#0071E3`) 추가.
+- `tests/test_welcome_modal.py` — 신규
+  - 단계 4개 / 비어있지 않은 필드 / NamedTuple 불변성 / `clamp_step` 경계 / 제목 unique / FR 코드 매핑 검증 (9 케이스).
+
+### Verification
+- `uv run ruff check --fix .` → All checks passed (DOC201 1건 자동 수정 후)
+- `uv run ruff format .` → 43 files left unchanged
+- `uv run pyright` → 0 errors, 137 warnings (이전 138 → -1)
+- `uv run pytest` → **59 passed** (이전 50 → 9 신규), coverage 64.13% (60% 요건 ≥)
+- Import sanity: `python -c "from app.components.welcome_modal import ..."` OK
+- 핵심 플로우 회귀: `app/main.py` 에 모달 호출만 추가, 데이터 로딩·사이드바·KPI·솔루션·지도 흐름은 그대로 (모달이 닫혀야 하단이 정상 렌더되는 차단성 추가는 없음 — `st.dialog` 는 페이지 위에 떠 있을 뿐 하단 렌더를 막지 않음).
+
+### Slack 메시지 (요약)
+> Round 22 ✅ 환영 온보딩 모달 (4 카드 · Next · 시작하기 · 사이드바 재시작) — ruff/pyright/pytest 통과, 59 tests, cov 64.13%.
+
+### Commit
+- `improve: 페이지 첫 진입 환영 온보딩 모달 (4 카드 + Next/시작하기)`
+
+### Notes (다음 라운드 후보 풀)
+- 완성도 **C1** (모바일 KPI 가독성), **C3** (footer GitHub 링크 — 사용자 컨펌 필요)
+- 성능 **E1** (캐시 키 hash — 캐시 무효화 리스크, 사용자 컨펌 권장)
+- 신규 후보: **F1** 환영 모달 UX 폴리시 — 다이얼로그 X 닫기 시 `seen` 플래그 처리 (현재는 X 닫기 시에도 다음 rerun 에 재오픈, 의도이긴 하나 노이즈 가능). 또는 **F2** 모달 본문 카드 hover/focus 상태 강조 (Design.md 모션 최소화 가이드와 균형).
+- 다음 라운드 1순위: **F1 모달 X 닫기 시 1회 한정 유보** — 코드 변경 최소, 안전.
+
+---
+
+## 최종 점수 (Round 22 기준)
 | 영역 | 점수 |
 |------|------|
 | 기능 완성도 | 9 |

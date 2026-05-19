@@ -1,0 +1,57 @@
+from __future__ import annotations
+
+from app.components.welcome_modal import WelcomeStep, clamp_step, get_steps
+
+
+def test_get_steps_returns_four_entries() -> None:
+    steps = get_steps()
+    assert len(steps) == 4
+
+
+def test_get_steps_are_welcome_step_instances() -> None:
+    for step in get_steps():
+        assert isinstance(step, WelcomeStep)
+
+
+def test_get_steps_have_nonempty_fields() -> None:
+    for step in get_steps():
+        assert step.tag.strip()
+        assert step.icon.strip()
+        assert step.title.strip()
+        assert step.body.strip()
+
+
+def test_welcome_step_is_immutable() -> None:
+    step = WelcomeStep(tag="x", icon="🔍", title="t", body="b")
+    try:
+        step.tag = "y"  # type: ignore[misc]
+    except AttributeError:
+        return
+    raise AssertionError("WelcomeStep should be immutable (NamedTuple)")
+
+
+def test_clamp_step_negative_returns_zero() -> None:
+    assert clamp_step(-5) == 0
+
+
+def test_clamp_step_above_max_returns_last_index() -> None:
+    last = len(get_steps()) - 1
+    assert clamp_step(99) == last
+
+
+def test_clamp_step_in_range_returns_self() -> None:
+    for i in range(len(get_steps())):
+        assert clamp_step(i) == i
+
+
+def test_step_titles_are_unique() -> None:
+    titles = [s.title for s in get_steps()]
+    assert len(set(titles)) == len(titles)
+
+
+def test_step_tags_mention_fr_codes() -> None:
+    tags = [s.tag for s in get_steps()]
+    assert any("FR-01" in t for t in tags)
+    assert any("FR-02" in t for t in tags)
+    assert any("FR-03" in t for t in tags)
+    assert any("FR-05" in t for t in tags)

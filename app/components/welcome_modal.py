@@ -20,12 +20,14 @@ class WelcomeStep(NamedTuple):
         icon: 단계를 대표하는 이모지 1글자.
         title: 카드 제목 (h3 톤).
         body: 카드 본문 1~2줄 설명.
+        example: PRD §6 헬리오시티 사례 등 구체 시나리오 1줄. 비어 있으면 미표시.
     """
 
     tag: str
     icon: str
     title: str
     body: str
+    example: str = ""
 
 
 _STEPS: Final[tuple[WelcomeStep, ...]] = (
@@ -37,6 +39,7 @@ _STEPS: Final[tuple[WelcomeStep, ...]] = (
             "건물명·주소로 공급처를 즉시 찾고, 일 발생량·수질등급·신고상태를 "
             "사이드바 카드에서 한눈에 확인할 수 있습니다."
         ),
+        example="예: 송파 헬리오시티 → 일 평균 1,060톤·수질 2등급",
     ),
     WelcomeStep(
         tag="FR-02 · AI 예측",
@@ -46,6 +49,7 @@ _STEPS: Final[tuple[WelcomeStep, ...]] = (
             "LightGBM 기반 30일 재이용 가능량 예측과 강수·계절성 SHAP 기여도로 "
             "수자원 공급 계획을 미리 세웁니다."
         ),
+        example="예: 강수 +50mm → 30일 발생량 예측치 변동을 즉시 반영",
     ),
     WelcomeStep(
         tag="FR-03 · ROI",
@@ -55,6 +59,7 @@ _STEPS: Final[tuple[WelcomeStep, ...]] = (
             "100% 재이용 시 연 하수도 절감액·탄소 절감량·투자 회수기간을 "
             "사이드바 ROI 블록에서 즉시 산출해 보여드립니다."
         ),
+        example="예: 헬리오시티 387,000톤/년 → 연 7,740만원 절감·71 tCO₂eq",
     ),
     WelcomeStep(
         tag="FR-05 · 매칭",
@@ -64,6 +69,7 @@ _STEPS: Final[tuple[WelcomeStep, ...]] = (
             "공원·도로 등 수요처를 PuLP ILP 최적화로 자동 매칭하고, "
             "공급-수요 흐름을 지도 위에서 시각적으로 추적합니다."
         ),
+        example="예: 반경 1km 내 공원·도로 수요처를 ILP 로 자동 할당",
     ),
 )
 
@@ -105,6 +111,10 @@ _MODAL_CSS: Final[str] = """
   line-height:1.35;margin-bottom:8px;
 }
 .welcome-feature-body {font-size:13px;color:#333A40;line-height:1.6;}
+.welcome-feature-example {
+  margin-top:10px;padding-top:10px;border-top:1px dashed #E4E4E0;
+  font-size:11px;color:#666A70;line-height:1.5;
+}
 .welcome-step-counter {
   font-size:11px;font-weight:600;color:#666A70;
   letter-spacing:.05em;text-transform:uppercase;text-align:center;
@@ -168,12 +178,16 @@ def _render_step_card(step: WelcomeStep, step_idx: int) -> None:
         f'<div class="welcome-progress">{progress_html}</div>',
         unsafe_allow_html=True,
     )
+    example_html = (
+        f'<div class="welcome-feature-example">{escape(step.example)}</div>' if step.example else ""
+    )
     st.markdown(
         f'<div class="welcome-feature-card">'
         f'<div class="welcome-feature-icon">{escape(step.icon)}</div>'
         f'<span class="welcome-step-tag">{escape(step.tag)}</span>'
         f'<div class="welcome-feature-title">{escape(step.title)}</div>'
         f'<div class="welcome-feature-body">{escape(step.body)}</div>'
+        f"{example_html}"
         f"</div>",
         unsafe_allow_html=True,
     )

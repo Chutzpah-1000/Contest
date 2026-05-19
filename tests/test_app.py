@@ -5,6 +5,7 @@ import math
 import pandas as pd
 import pytest
 
+from app.components.cards import _DESIGN_CSS  # 모바일 분기 회귀 가드용
 from app.components.kakao_map import build_kakao_map_html
 from app.services.data import KST, last_data_refresh, load_app_data
 from app.services.matching import (
@@ -155,6 +156,13 @@ def test_last_data_refresh_returns_none_when_no_parquet(tmp_path) -> None:  # ty
     (tmp_path / "silver").mkdir()
     (tmp_path / "gold").mkdir()
     assert last_data_refresh(str(tmp_path)) is None
+
+
+def test_kpi_mobile_breakpoint_tokens_present() -> None:
+    # Round 26 회귀 가드 — 720px 이하에서 KPI 폰트·padding 축소 분기가 살아있는지.
+    assert "@media(max-width:720px)" in _DESIGN_CSS
+    assert ".kpi-value {font-size:18px" in _DESIGN_CSS
+    assert ".kpi-cell {padding:12px 14px" in _DESIGN_CSS
 
 
 def test_metric_value_returns_correct_float() -> None:

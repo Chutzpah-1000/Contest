@@ -87,6 +87,13 @@ h1 {
 }
 .kpi-value {font-size:22px;font-weight:700;color:var(--color-text);line-height:1.15;}
 .kpi-value.data {color:var(--color-data);}
+@media(max-width:720px){
+  .kpi-cell {padding:12px 14px;}
+  .kpi-label {font-size:10px;margin-bottom:3px;}
+  .kpi-value {font-size:18px;line-height:1.2;}
+  .kpi-source > summary {font-size:9px;}
+  .kpi-source-body {font-size:9px;padding:6px 8px;}
+}
 
 /* ── KPI 소스 disclosure (ⓘ popover) ── */
 .kpi-source {margin-top:6px;}

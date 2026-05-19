@@ -247,3 +247,23 @@ from etl.transform import normalize_supplier
 - 라운드별 브랜치를 `agent/round-N-...` 로 push 한 뒤 PR 생성 또는 기존 자율 개선 PR에 커밋 추가.
 - PR 본문에는 Round N 로그 엔트리 그대로 + 전/후 측정치(가능한 경우) 포함.
 - CI 실패 시 1회만 fix 재시도. 같은 에러 반복이면 중단·보고.
+
+### 11.6 Stacked PR 정책
+
+여러 라운드를 한 세션에서 연속 실행할 때, 매 라운드를 **이전 라운드 브랜치 위에** 분기해 stacked PR 로 누적한다 (이유: 사용자가 머지 시점을 직접 통제할 수 있고, 이전 라운드 변경에 의존하는 후속 라운드도 안전하게 검증 가능).
+
+- 브랜치 분기: `git checkout agent/round-{N-1}-...` → `git checkout -b agent/round-N-...`
+- PR 생성 시 `--base agent/round-{N-1}-...` 명시. GitHub 은 이전 PR 머지 시 base 를 main 으로 자동 갱신한다.
+- 머지 순서: **가장 오래된 stacked 부터 차례로**. PR 1개 머지 → 다음 PR base 자동 갱신 → 다음 머지.
+- 사용자 변경 사항 충돌 방지: 라운드 작업 중 `git checkout main` 으로 메인 워킹트리를 건드리지 말 것. 항상 `agent/round-*` 브랜치 안에서만 작업.
+
+### 11.7 컨텍스트 인계 안전장치 (토큰 임계 대비)
+
+세션 토큰 임계에 가까워졌거나, 다른 에이전트(Codex CLI · Cursor 등)에게 인계해야 할 때:
+
+1. **마지막 라운드 엔트리** 가 `AUTONOMOUS_IMPROVEMENT_LOG.md` 끝에 완전히 append 됐는지 확인 (Scores·Files changed·Verification·Commit·Notes 5개 필드 모두).
+2. **열린 stacked PR 목록**: `gh pr list --state open --search "agent/round-"` 출력을 메모.
+3. **현재 브랜치 위치**: `git rev-parse --abbrev-ref HEAD` 와 `git log --oneline -5` 출력을 메모.
+4. 후속 에이전트는 본 §11.1 ~ §11.6 + 위 3가지 메모 + `AUTONOMOUS_IMPROVEMENT_LOG.md` 마지막 라운드 엔트리를 읽고 다음 라운드부터 재개.
+
+토큰 임계가 임박했지만 다음 라운드 후보를 정하지 못한 상태라면, 본 §11.7 절차만 마치고 라운드를 시작하지 말 것. 잘못된 후보 선정 + 검증 실패가 인계 시 가장 큰 마찰 지점.

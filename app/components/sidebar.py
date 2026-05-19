@@ -60,7 +60,7 @@ _SIDEBAR_CSS: Final[str] = """
     margin-top:16px;padding-top:12px;border-top:1px solid #E4E4E0;
     font-size:10px;color:#888;line-height:1.6;
 }
-[data-testid="stSidebar"] [data-testid="stButton"][data-key="sidebar_tutorial_replay"] button {
+[data-testid="stSidebar"] [data-testid="stButton"] button {
     background:#FFFFFF !important;
     border:1px solid #E4E4E0 !important;
     color:#666A70 !important;
@@ -70,11 +70,17 @@ _SIDEBAR_CSS: Final[str] = """
     padding:6px 10px !important;
     box-shadow:none !important;
     width:100% !important;
+    transition:border-color .12s ease, color .12s ease, background .12s ease;
 }
-[data-testid="stSidebar"] [data-testid="stButton"][data-key="sidebar_tutorial_replay"] button:hover {
+[data-testid="stSidebar"] [data-testid="stButton"] button:hover {
     border-color:#0071E3 !important;
     color:#0071E3 !important;
     background:#F5F9FF !important;
+}
+[data-testid="stSidebar"] [data-testid="stButton"] button:focus {
+    outline:none !important;
+    border-color:#0071E3 !important;
+    box-shadow:0 0 0 2px rgba(0,113,227,.18) !important;
 }
 /* 사이드바 검색 input border — hover 없이도 항상 보이도록 검정 톤 */
 [data-testid="stSidebar"] [data-testid="stTextInput"] div[data-baseweb="input"],
@@ -169,6 +175,11 @@ def render_sidebar(suppliers: pd.DataFrame) -> tuple[int, str]:
             label_visibility="collapsed",
         )  # type: ignore[assignment]  # st.radio returns Any; guaranteed int from options list
 
+        st.divider()
+        st.markdown(
+            "<p class='sb-ctrl-label'>도움말</p>",
+            unsafe_allow_html=True,
+        )
         if st.button(
             "튜토리얼 다시 보기",
             key="sidebar_tutorial_replay",

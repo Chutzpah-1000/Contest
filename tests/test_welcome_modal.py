@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from app.components.welcome_modal import WelcomeStep, clamp_step, get_steps
+from app.components.welcome_modal import (
+    WelcomeStep,
+    clamp_step,
+    get_epiphany_html,
+    get_steps,
+)
 
 
 def test_get_steps_returns_four_entries() -> None:
@@ -55,3 +60,13 @@ def test_step_tags_mention_fr_codes() -> None:
     assert any("FR-02" in t for t in tags)
     assert any("FR-03" in t for t in tags)
     assert any("FR-05" in t for t in tags)
+
+
+def test_epiphany_html_includes_prd_core_numbers() -> None:
+    html = get_epiphany_html()
+    assert "387,000" in html
+    assert "92.1" in html
+
+
+def test_epiphany_html_uses_welcome_epiphany_class() -> None:
+    assert 'class="welcome-epiphany"' in get_epiphany_html()

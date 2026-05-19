@@ -70,3 +70,19 @@ def test_epiphany_html_includes_prd_core_numbers() -> None:
 
 def test_epiphany_html_uses_welcome_epiphany_class() -> None:
     assert 'class="welcome-epiphany"' in get_epiphany_html()
+
+
+def test_every_step_has_nonempty_example() -> None:
+    for step in get_steps():
+        assert step.example.strip(), f"step {step.tag} missing example"
+
+
+def test_roi_step_example_mentions_helicity_numbers() -> None:
+    roi = next(s for s in get_steps() if "FR-03" in s.tag)
+    assert "387,000" in roi.example
+    assert "7,740" in roi.example
+
+
+def test_welcome_step_example_defaults_to_empty() -> None:
+    step = WelcomeStep(tag="x", icon="✨", title="t", body="b")
+    assert not step.example

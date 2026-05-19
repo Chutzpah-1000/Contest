@@ -69,8 +69,21 @@ _STEPS: Final[tuple[WelcomeStep, ...]] = (
 
 _TOTAL_STEPS: Final[int] = len(_STEPS)
 
+_EPIPHANY_HTML: Final[str] = (
+    '<div class="welcome-epiphany">'
+    "서울 한 단지에서 <b>연 387,000톤</b>의 깨끗한 지하수가 하수도로 흘러갑니다. "
+    "50% 감면 조례 4년차, 2024년 건축물 미사용률 <b>92.1%</b>."
+    "</div>"
+)
+
 _MODAL_CSS: Final[str] = """
 <style>
+.welcome-epiphany {
+  background:#FFFFFF;border:1px solid #E4E4E0;border-left:3px solid #0071E3;
+  border-radius:8px;padding:12px 14px;margin:0 0 14px;
+  font-size:12px;color:#333A40;line-height:1.55;
+}
+.welcome-epiphany b {color:#0071E3;font-weight:700;}
 .welcome-step-tag {
   display:inline-block;padding:3px 10px;border-radius:4px;
   font-size:10px;font-weight:700;background:#E6F0FC;color:#0071E3;
@@ -170,10 +183,20 @@ def _render_step_card(step: WelcomeStep, step_idx: int) -> None:
     )
 
 
+def get_epiphany_html() -> str:
+    """환영 모달 상단 Epiphany 배너 HTML 을 반환 (테스트·외부 검증용).
+
+    Returns:
+        PRD §1 Epiphany 메시지를 담은 ``<div class="welcome-epiphany">`` 마크업.
+    """
+    return _EPIPHANY_HTML
+
+
 @st.dialog(_DIALOG_TITLE, width="large")  # pyright: ignore[reportUnknownMemberType]
 def _open_dialog() -> None:
     """환영 모달 다이얼로그 본체 — Streamlit @st.dialog 데코레이션."""
     st.markdown(_MODAL_CSS, unsafe_allow_html=True)
+    st.markdown(_EPIPHANY_HTML, unsafe_allow_html=True)
 
     step_idx: int = clamp_step(int(st.session_state.get(_WELCOME_STEP_KEY, 0)))
     step: WelcomeStep = _STEPS[step_idx]

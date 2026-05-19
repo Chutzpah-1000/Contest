@@ -53,4 +53,3 @@ jobs:
           prompt: ${{ inputs.prompt }}
           claude_args: |
             --max-turns 10
-            --allowedTools "Bash(uv sync),Bash(uv run ruff check --fix .),Bash(uv run ruff format .),Bash(uv run pyright),Bash(uv run pytest),Bash(git status),Bash(git diff)"

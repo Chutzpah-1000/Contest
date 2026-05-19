@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from app.components.sidebar import _find_building, resolve_search_state
+from app.components.sidebar import _SIDEBAR_CSS, _find_building, resolve_search_state
 
 
 def test_resolve_idle_keeps_previous_applied() -> None:
@@ -65,6 +65,13 @@ def test_find_building_no_match_returns_none() -> None:
         ]
     )
     assert _find_building(suppliers, "존재하지않는검색어xyz") is None
+
+
+def test_sidebar_footer_mobile_breakpoint_tokens_present() -> None:
+    # Round 30 회귀 가드 — 720px 이하 사이드바 footer 축소 분기.
+    assert "@media(max-width:720px)" in _SIDEBAR_CSS
+    assert ".sb-footer {font-size:9px" in _SIDEBAR_CSS
+    assert ".sb-title {font-size:13px" in _SIDEBAR_CSS
 
 
 def test_find_building_matches_korean_substring() -> None:

@@ -60,6 +60,11 @@ _SIDEBAR_CSS: Final[str] = """
     margin-top:16px;padding-top:12px;border-top:1px solid #E4E4E0;
     font-size:10px;color:#888;line-height:1.6;
 }
+@media(max-width:720px){
+    .sb-header {padding:12px 14px 10px;margin-bottom:10px;}
+    .sb-title {font-size:13px;}
+    .sb-footer {font-size:9px;line-height:1.5;margin-top:12px;padding-top:10px;}
+}
 [data-testid="stSidebar"] [data-testid="stButton"] button {
     background:#FFFFFF !important;
     border:1px solid #E4E4E0 !important;

@@ -896,7 +896,53 @@ uv run streamlit run app/main.py  # 앱 실행
 
 ---
 
-## 최종 점수 (Round 29 기준)
+## Round 30 — 사이드바 footer/header 모바일 분기 (I1) (2026-05-19)
+
+- **Branch**: `agent/round-30-sidebar-footer-mobile` (stacked on R29)
+- **Scores (before → after)**:
+  - 기능 완성도: 9 → 9
+  - 사용자 경험: 9 → 9 (모바일 사이드바 가독성)
+  - 안정성: 9 → 9 (회귀 가드 +1, 71 passed)
+  - 성능: 9 → 9
+  - 코드 품질: 9 → 9
+  - 완성도: 9 → 9 (모바일 시연 일관성)
+- **Lowest area**: 동률 9. R26 에서 KPI 카드 모바일 분기는 강화했으나 사이드바 (모바일에서 햄버거 메뉴로 펼쳐짐) 의 `.sb-header`·`.sb-title`·`.sb-footer` 는 데스크탑 톤 그대로. 좁은 화면에서 데이터 갱신·출처·대회 라벨이 footer 영역에 우겨 들어가 가독성 저하.
+
+### Planned improvement (I1 소진)
+`_SIDEBAR_CSS` 에 `@media(max-width:720px)` 블록 추가:
+- `.sb-header` padding 14/16 → 12/14, margin-bottom 14 → 10
+- `.sb-title` 14px → 13px
+- `.sb-footer` 10px → 9px, line-height 1.6 → 1.5, margin-top 16 → 12, padding-top 12 → 10
+
+### Files changed
+- `app/components/sidebar.py` — `_SIDEBAR_CSS` 모바일 미디어쿼리 블록 신규 (5줄)
+- `tests/test_sidebar_search.py`
+  - top-level import 에 `_SIDEBAR_CSS` 추가.
+  - `test_sidebar_footer_mobile_breakpoint_tokens_present` — 720px 분기·9px footer·13px title 토큰 회귀 가드.
+
+### Verification
+- `uv run ruff check --fix .` → All checks passed
+- `uv run ruff format .` → 43 files left unchanged
+- `uv run pyright` → 0 errors, 137 warnings
+- `uv run pytest` → **71 passed** (이전 70 → +1), coverage 65.35%
+
+### Slack 메시지 (요약)
+> Round 30 ✅ 사이드바 footer/header 모바일 분기 (720px ↓ font·line-height 축소) — 71 tests.
+
+### Commit
+- `polish(sidebar): 사이드바 footer·header 모바일 분기 (720px ↓ 폰트·line-height 축소)`
+
+### Notes (다음 라운드 후보 풀)
+- **M1**: `app/main.py:67` "데이터 출처: 서울 열린데이터광장 ..." `st.caption` 도 헬퍼화 (refactor 일관성)
+- **N1 (신규)**: `app/main.py` warning/error 메시지 (Kakao key 미설정·데이터 누락) 톤 일관화 — 동일 카드 구조로 통일
+- **F1**: 모달 X 닫기 폴리시 (보류)
+- **E1**: 캐시 키 hash (사용자 컨펌)
+- **O1 (신규)**: AGENTS.md 에 "AUTONOMOUS_IMPROVEMENT_LOG.md 의 최신 라운드부터 읽고 시작" 안내 보강 (프롬프트 L148 컨텍스트 인계 안전장치) — 사용자 노출용
+- 다음 라운드 1순위: **O1 컨텍스트 인계 안전장치** (프롬프트 L148 지정, 토큰 임계 가까워짐을 고려) 또는 **N1 warning 톤**.
+
+---
+
+## 최종 점수 (Round 30 기준)
 | 영역 | 점수 |
 |------|------|
 | 기능 완성도 | 9 |

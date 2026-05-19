@@ -757,7 +757,52 @@ uv run streamlit run app/main.py  # 앱 실행
 
 ---
 
-## 최종 점수 (Round 26 기준)
+## Round 27 — 환영 모달 단계 카드 hover 강조 (2026-05-19)
+
+- **Branch**: `agent/round-27-modal-card-hover` (stacked on R26)
+- **Scores (before → after)**:
+  - 기능 완성도: 9 → 9
+  - 사용자 경험: 9 → 9 (인터랙티브 affordance 가시화)
+  - 안정성: 9 → 9 (테스트 +1, 66 passed)
+  - 성능: 9 → 9
+  - 코드 품질: 9 → 9
+  - 완성도: 9 → 9
+- **Lowest area**: 동률 9. 환영 모달 단계 카드는 정적 상태로만 표시되어 사용자가 "카드 자체를 클릭할 수 있나?" 같은 미세한 모호함이 남아 있을 수 있음. Design.md 가이드(모션 최소·lift 금지)와 균형 잡힌 hover 피드백 부재.
+
+### Planned improvement (H1 소진)
+`.welcome-feature-card` 에 0.15s transition + hover 시 border-color → `#0071E3` (primary), 배경 → `#FCFCFB` (1단계 라이트닝). lift·scale 금지 (Design.md §"모션 최소" 준수). 카드 자체는 여전히 클릭 액션 없음 — affordance 시그널만.
+
+### Files changed
+- `app/components/welcome_modal.py`
+  - `_MODAL_CSS.welcome-feature-card` 에 `transition:border-color .15s ease, background-color .15s ease;` 추가.
+  - `.welcome-feature-card:hover { border-color:#0071E3; background:#FCFCFB; }` 신규 룰.
+- `tests/test_welcome_modal.py`
+  - top-level import 에 `_MODAL_CSS` 추가 (PLC0415 회피).
+  - `test_modal_card_has_hover_state_with_primary_accent` — 1) `:hover` 룰 존재 2) `#0071E3` accent 3) `text-transform:` 제외한 `transform:` 사용 금지 (lift 가드).
+
+### Verification
+- `uv run ruff check --fix .` → All checks passed
+- `uv run ruff format .` → 43 files left unchanged
+- `uv run pyright` → 0 errors, 137 warnings
+- `uv run pytest` → **66 passed** (이전 65 → +1), coverage 65.29%
+
+### Slack 메시지 (요약)
+> Round 27 ✅ 환영 모달 단계 카드 hover 강조 (border-color → primary, lift X) — 66 tests.
+
+### Commit
+- `polish(welcome): 모달 단계 카드 hover 시 border-color → primary 액센트`
+
+### Notes (다음 라운드 후보 풀)
+- **I1**: 사이드바 footer 모바일 분기 (line-height·font-size 미세 조정)
+- **F1**: 모달 X 닫기 폴리시 (외부 패키지 필요, 보류)
+- **E1**: 캐시 키 hash (사용자 컨펌 권장)
+- **J1 (신규)**: 환영 모달 진행 dots 클릭 시 단계 점프 — UX 강화. dots에 `cursor:pointer` + JS callback. 그러나 Streamlit dialog 내 JS callback은 components.html 필요 → 복잡도.
+- **K1 (신규)**: `app/main.py` 의 `unsafe_allow_html=True` H1 인라인 마크업을 cards.py 의 헤더 헬퍼로 추출 — 코드 품질 미세.
+- 다음 라운드 1순위: **I1** (안전, 작은 단위) 또는 **K1** (코드 품질).
+
+---
+
+## 최종 점수 (Round 27 기준)
 | 영역 | 점수 |
 |------|------|
 | 기능 완성도 | 9 |

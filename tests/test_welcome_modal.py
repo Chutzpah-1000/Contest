@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.components.welcome_modal import (
+    _MODAL_CSS,
     WelcomeStep,
     clamp_step,
     get_epiphany_html,
@@ -86,3 +87,11 @@ def test_roi_step_example_mentions_helicity_numbers() -> None:
 def test_welcome_step_example_defaults_to_empty() -> None:
     step = WelcomeStep(tag="x", icon="✨", title="t", body="b")
     assert not step.example
+
+
+def test_modal_card_has_hover_state_with_primary_accent() -> None:
+    assert ".welcome-feature-card:hover" in _MODAL_CSS
+    assert "border-color:#0071E3" in _MODAL_CSS
+    # Design.md: 카드 lift 금지 — text-transform(대문자 변환) 외에 CSS transform 속성 금지.
+    css_without_text_transform = _MODAL_CSS.replace("text-transform:", "")
+    assert "transform:" not in css_without_text_transform

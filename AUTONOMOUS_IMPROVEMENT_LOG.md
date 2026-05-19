@@ -802,7 +802,58 @@ uv run streamlit run app/main.py  # 앱 실행
 
 ---
 
-## 최종 점수 (Round 27 기준)
+## Round 28 — 페이지 헤더 HTML 헬퍼 추출 + XSS escape 가드 (2026-05-19)
+
+- **Branch**: `agent/round-28-page-header-helper` (stacked on R27)
+- **Scores (before → after)**:
+  - 기능 완성도: 9 → 9
+  - 사용자 경험: 9 → 9
+  - 안정성: 9 → 9 (XSS escape 회귀 가드 추가, 68 passed)
+  - 성능: 9 → 9
+  - 코드 품질: 9 → 9 (main.py 인라인 unsafe_allow_html 1건 → 헬퍼 호출)
+  - 완성도: 9 → 9
+- **Lowest area**: 동률 9. `app/main.py:44~49` 의 H1 + subtitle 가 인라인 `st.markdown(..., unsafe_allow_html=True)` 형태로 들어 있어, 페이지 헤더 텍스트가 사용자 입력에서 올 경우(향후 다국어/동적 제목 도입 시) escape 처리 누락 위험. 코드 응집도도 낮음.
+
+### Planned improvement (K1 소진)
+`app/components/cards.py` 에 두 함수 추가:
+- `page_header_html(title, subtitle) -> str` (순수 함수, HTML escape 처리, 단위 테스트 가능)
+- `render_page_header(title, subtitle) -> None` (Streamlit wrapper)
+
+`main.py` 의 인라인 마크업을 `render_page_header(...)` 호출 1줄로 교체. 향후 다국어/동적 헤더 도입 시 XSS escape 자동 적용.
+
+### Files changed
+- `app/components/cards.py`
+  - `page_header_html(title, subtitle) -> str` 순수 헬퍼 + Google docstring.
+  - `render_page_header(title, subtitle) -> None` Streamlit wrapper.
+- `app/main.py`
+  - import 갱신: `render_page_header` 추가.
+  - 인라인 `st.markdown(...)` H1/subtitle 4줄 → `render_page_header(...)` 1줄 호출.
+- `tests/test_app.py`
+  - `test_page_header_html_escapes_user_text` — `<script>` 페이로드가 `&lt;script&gt;` 로 escape 되는지.
+  - `test_page_header_html_uses_page_subtitle_class` — `<h1>` 과 `<p class='page-subtitle'>` 토큰 회귀 가드.
+
+### Verification
+- `uv run ruff check --fix .` → All checks passed
+- `uv run ruff format .` → 43 files left unchanged
+- `uv run pyright` → 0 errors, 137 warnings
+- `uv run pytest` → **68 passed** (이전 66 → +2), coverage 65.27% → **65.32%**
+
+### Slack 메시지 (요약)
+> Round 28 ✅ 페이지 헤더 헬퍼 추출 + XSS escape 가드 — main.py 응집도 ↑, 68 tests.
+
+### Commit
+- `refactor(cards): main.py H1/subtitle 인라인 → page_header_html 헬퍼 추출 + XSS escape 가드`
+
+### Notes (다음 라운드 후보 풀)
+- **I1**: 사이드바 footer 모바일 분기 (line-height·font-size 미세 조정)
+- **L1 (신규)**: `app/main.py` 의 지도 섹션 레이블 인라인 `st.markdown` 도 `render_section_label` 헬퍼로 추출 — K1 동일 패턴 확장
+- **F1**: 모달 X 닫기 폴리시 (외부 패키지 필요, 보류)
+- **E1**: 캐시 키 hash (사용자 컨펌 권장)
+- 다음 라운드 1순위: **L1 섹션 레이블 헬퍼** (K1 패턴 재활용, 안전) 또는 **I1**.
+
+---
+
+## 최종 점수 (Round 28 기준)
 | 영역 | 점수 |
 |------|------|
 | 기능 완성도 | 9 |

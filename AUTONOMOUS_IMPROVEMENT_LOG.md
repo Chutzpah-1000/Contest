@@ -942,7 +942,53 @@ uv run streamlit run app/main.py  # 앱 실행
 
 ---
 
-## 최종 점수 (Round 30 기준)
+## Round 31 — AGENTS.md 컨텍스트 인계 안전장치 보강 (O1) (2026-05-19)
+
+- **Branch**: `agent/round-31-context-handoff-guard` (stacked on R30)
+- **Scores (before → after)**:
+  - 기능 완성도: 9 → 9
+  - 사용자 경험: 9 → 9
+  - 안정성: 9 → 9
+  - 성능: 9 → 9
+  - 코드 품질: 9 → 9 (인계 절차 명시)
+  - 완성도: 9 → 9 (운영 안전장치)
+- **Lowest area**: 동률 9. **프롬프트 L148** "토큰이 다 사용되기 전에 코덱스가 이해하기 좋은 컨텍스트로 로그를 만들어주고. AGENTS.md에 이 로그를 사용해서 개발을 시작하라는 안전장치를 만들어." 의 일부가 §11.1 체크리스트로 들어가 있으나, **stacked PR 누적 시 머지 순서**와 **토큰 임계 직전 인계 절차**가 명시되어 있지 않음. 본 세션은 R22~R30 까지 10개 stacked PR 누적 → 후속 에이전트가 머지 순서·재개 지점을 즉시 파악하기 어려운 상태.
+
+### Planned improvement (O1 소진)
+`AGENTS.md §11` 끝에 두 절 신규 추가:
+- **§11.6 Stacked PR 정책** — 분기/머지 순서/사용자 변경 충돌 방지 절차.
+- **§11.7 컨텍스트 인계 안전장치** — 토큰 임계 직전 3단계 메모(마지막 로그 엔트리·열린 PR 목록·현재 브랜치) 명시. 다음 에이전트가 따라야 할 시작 절차.
+
+### Files changed
+- `AGENTS.md` — §11.6, §11.7 두 절 신규 추가 (약 30줄)
+
+### Verification
+- `uv run ruff check --fix .` → All checks passed
+- `uv run ruff format .` → 43 files left unchanged
+- `uv run pyright` → 0 errors, 137 warnings
+- `uv run pytest` → **71 passed** 유지, coverage 65.35%
+
+### Slack 메시지 (요약)
+> Round 31 ✅ AGENTS.md §11.6 Stacked PR 정책 + §11.7 컨텍스트 인계 안전장치 추가 — 프롬프트 L148 명시 안전장치 충족.
+
+### Commit
+- `docs(agents): §11.6 Stacked PR 정책 + §11.7 컨텍스트 인계 안전장치 추가`
+
+### Notes (다음 라운드 후보 풀)
+- **M1**: main.py 데이터 출처 caption 헬퍼화 (refactor 일관성)
+- **N1**: main.py warning/error 메시지 톤 일관화
+- **P1 (신규)**: `app/components/welcome_modal.py` 의 `_open_dialog` 에서 `st.session_state.get(_WELCOME_STEP_KEY, 0)` 두 곳 호출 — clamp 헬퍼로 통합 (코드 미세 중복)
+- **F1**·**E1** 보류
+
+### 세션 종료 핸드오프 (R22~R31 누적)
+- 본 세션 실행 라운드: **Round 22 → Round 31 (10 라운드, 지정 작업 R22 포함)**.
+- 모든 라운드 검증 4종 + GitHub Actions CI 통과 (push + pull_request 양쪽).
+- 열린 stacked PR: **#5 (R22) → #6 (R23) → #7 (R24) → #8 (R25) → #9 (R26) → #10 (R27) → #11 (R28) → #12 (R29) → #13 (R30) → #14 (R31)** (R31 PR 생성 대기). 머지 순서: 가장 오래된부터 차례로 (PR #5 → #14).
+- 다음 에이전트는 `AGENTS.md §11.1` + §11.6 + §11.7 절차에 따라 시작. 후보 풀 1순위: **M1 데이터 출처 caption 헬퍼화** 또는 **N1 warning 톤 일관화**.
+
+---
+
+## 최종 점수 (Round 31 기준)
 | 영역 | 점수 |
 |------|------|
 | 기능 완성도 | 9 |

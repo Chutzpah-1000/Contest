@@ -665,7 +665,54 @@ uv run streamlit run app/main.py  # 앱 실행
 
 ---
 
-## 최종 점수 (Round 24 기준)
+## Round 25 — 단계 카드 PRD 헬리오시티 예시 인라인 (2026-05-19)
+
+- **Branch**: `agent/round-25-step-examples` (stacked on R24)
+- **Scores (before → after)**:
+  - 기능 완성도: 9 → 9 (PRD §6 헬리오시티 시뮬레이션 표 직접 인라인)
+  - 사용자 경험: 9 → 9 (추상 → 구체로 가치 가시화)
+  - 안정성: 9 → 9 (테스트 +3, 64 passed)
+  - 성능: 9 → 9
+  - 코드 품질: 9 → 9
+  - 완성도: 9 → 9
+- **Lowest area**: 동률 9. R22 환영 모달 4 카드는 *무엇을* 하는지 설명하지만 *어떤 결과가 나오는지* 구체 숫자는 R23 Epiphany 배너 1줄에만 압축. 사용자가 각 단계의 가치를 단계별로 체감하기 어려움.
+
+### Planned improvement (G3 소진)
+`WelcomeStep` 에 `example: str = ""` 필드(NamedTuple 기본값)를 추가하고 4 단계 모두 PRD §6 헬리오시티 시뮬레이션 표 직결 예시 1줄을 채움. 카드 본문 하단에 점선 구분선(1px dashed `#E4E4E0`) 아래 `welcome-feature-example` (11px `--color-muted`) 로 추가 표시.
+
+### Files changed
+- `app/components/welcome_modal.py`
+  - `WelcomeStep` 에 `example: str = ""` 5번째 필드 추가 + docstring 갱신.
+  - `_STEPS` 4종 모두 `example=` 채움 (헬리오시티 1,060톤·강수+50mm·387,000톤→7,740만원·반경 1km).
+  - `_MODAL_CSS` 에 `.welcome-feature-example` 토큰 추가.
+  - `_render_step_card` 가 `step.example` 채워진 경우에만 점선+caption 노출.
+- `tests/test_welcome_modal.py`
+  - `test_every_step_has_nonempty_example` — 4 단계 모두 example 채워졌는지.
+  - `test_roi_step_example_mentions_helicity_numbers` — ROI 예시에 387,000·7,740 토큰.
+  - `test_welcome_step_example_defaults_to_empty` — 기본값 ""  회귀 가드.
+
+### Verification
+- `uv run ruff check --fix .` → All checks passed
+- `uv run ruff format .` → 1 file reformatted (welcome_modal.py example_html 1줄), 42 files left unchanged
+- `uv run pyright` → 0 errors, 137 warnings
+- `uv run pytest` → **64 passed** (이전 61 → +3), coverage 64.04%
+
+### Slack 메시지 (요약)
+> Round 25 ✅ 환영 모달 4 카드에 PRD 헬리오시티 예시 1줄 추가 — 추상 → 구체 가시화, 64 tests.
+
+### Commit
+- `improve: 환영 모달 4 카드에 PRD 헬리오시티 예시 인라인 (387,000톤→7,740만원·71t-CO₂)`
+
+### Notes (다음 라운드 후보 풀)
+- **F1**: 모달 X 닫기 시 1회 한정 유보 (외부 패키지 필요, 보류)
+- **C1**: 모바일 KPI 가독성 — 이미 720px 미디어쿼리 적용. 추가 폭은 cards.py 의 `.kpi-value` 폰트 크기 22px 를 모바일에서 18~20px 로 줄이는 정도 가능.
+- **E1**: 캐시 키 hash (사용자 컨펌 권장)
+- **H1 (신규)**: 환영 모달 본문 카드에 hover 상태 강조 — Design.md "모션 최소" 가이드와 균형 (hover 시 1px border-color → primary 만, lift X). 작은 폴리시.
+- 다음 라운드 1순위: **C1 모바일 KPI 폰트 폭** (코드 변경 최소, 안전) 또는 **H1 카드 hover**.
+
+---
+
+## 최종 점수 (Round 25 기준)
 | 영역 | 점수 |
 |------|------|
 | 기능 완성도 | 9 |

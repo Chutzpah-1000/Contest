@@ -577,7 +577,53 @@ uv run streamlit run app/main.py  # 앱 실행
 
 ---
 
-## 최종 점수 (Round 22 기준)
+## Round 23 — 환영 모달 PRD Epiphany 헤더 배너 (2026-05-19)
+
+- **Branch**: `agent/round-23-modal-epiphany-intro` (stacked on `agent/round-22-welcome-modal`)
+- **Scores (before → after)**:
+  - 기능 완성도: 9 → 9 (PRD §1 Epiphany 정렬 강화)
+  - 사용자 경험: 9 → 9 (첫 진입에 가치 제안 즉시 노출)
+  - 안정성: 9 → 9 (테스트 +2, 61 passed)
+  - 성능: 9 → 9
+  - 코드 품질: 9 → 9
+  - 완성도: 9 → 9 (PRD 핵심 메시지 일관성)
+- **Lowest area**: 동률 9. Round 22 환영 모달은 4 기능을 잘 소개하지만 **"왜 이 도구가 필요한가"** 의 PRD §1 Epiphany 메시지 (연 387,000톤·미사용률 92.1%) 가 첫 진입에 노출되지 않음. 시연·심사 시 가장 강력한 와우 포인트가 모달 뒤로 밀려 있는 상태.
+
+### Planned improvement
+환영 모달 상단(다이얼로그 제목 아래·진행 dots 위)에 PRD §1 Epiphany 1줄 배너를 항상 표시. 4 카드 구조는 그대로 유지 (지정 작업 요구사항 충족). 좌측 3px primary border + 핵심 숫자 굵게 강조.
+
+### Files changed
+- `app/components/welcome_modal.py`
+  - `_EPIPHANY_HTML: Final[str]` 상수 추가 — PRD §1 Epiphany 텍스트 (387,000톤·92.1% 굵게).
+  - `_MODAL_CSS` 에 `.welcome-epiphany`, `.welcome-epiphany b` 토큰 추가 (1px border + 3px left primary border + 12px padding · 8px radius · `#333A40` body 톤).
+  - `get_epiphany_html()` 공개 헬퍼 (테스트·외부 검증용).
+  - `_open_dialog()` 본문에 `st.markdown(_EPIPHANY_HTML, ...)` 1줄 추가 (CSS 주입 직후, 단계 카드 직전).
+- `tests/test_welcome_modal.py`
+  - `test_epiphany_html_includes_prd_core_numbers` — "387,000"·"92.1" 토큰 검증.
+  - `test_epiphany_html_uses_welcome_epiphany_class` — CSS 클래스명 회귀 가드.
+
+### Verification
+- `uv run ruff check --fix .` → All checks passed
+- `uv run ruff format .` → 43 files left unchanged
+- `uv run pyright` → 0 errors, 137 warnings
+- `uv run pytest` → **61 passed** (이전 59 → +2), coverage 64.13% → **64.16%**
+
+### Slack 메시지 (요약)
+> Round 23 ✅ 환영 모달에 PRD Epiphany 헤더 배너 (연 387,000톤·미사용률 92.1%) — 61 tests, cov 64.16%.
+
+### Commit
+- `improve: 환영 모달 상단에 PRD Epiphany 배너 (연 387,000톤·미사용률 92.1%)`
+
+### Notes (다음 라운드 후보 풀)
+- **F1** (잔여): 모달 X 닫기 시 1회 한정 유보 — Streamlit `st.dialog` 닫기 이벤트 미노출. `streamlit-extras` 또는 `components.html` JS 인터럽트 필요 → 외부 패키지 또는 복잡도 중상.
+- **F2** (신규): 사이드바 "튜토리얼 다시 보기" 버튼 위치/시각 조정 — 현재 데이터 갱신 footer 직전에 떠 있어 위치 모호.
+- **C1**: 모바일 KPI 가독성 — cards.py 이미 720px 미디어쿼리 적용. 추가 개선 여지 살펴봐야.
+- **E1**: 캐시 키 hash (사용자 컨펌 권장).
+- 다음 라운드 1순위: **F2** (사이드바 재시작 버튼 위치 폴리시) — 코드 변경 최소, 안전.
+
+---
+
+## 최종 점수 (Round 23 기준)
 | 영역 | 점수 |
 |------|------|
 | 기능 완성도 | 9 |

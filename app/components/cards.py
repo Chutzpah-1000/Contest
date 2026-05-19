@@ -154,6 +154,31 @@ def inject_design_css() -> None:
     st.markdown(_DESIGN_CSS, unsafe_allow_html=True)
 
 
+def page_header_html(title: str, subtitle: str) -> str:
+    """Compose the page header HTML (H1 + subtitle) with HTML escaping.
+
+    Pure function — exposed for unit testing the escape behaviour.
+
+    Args:
+        title: 페이지 제목 — HTML escape 처리.
+        subtitle: 부제 1줄 — HTML escape 처리.
+
+    Returns:
+        ``<h1>{title}</h1><p class='page-subtitle'>{subtitle}</p>`` 마크업.
+    """
+    return f"<h1>{escape(title)}</h1><p class='page-subtitle'>{escape(subtitle)}</p>"
+
+
+def render_page_header(title: str, subtitle: str) -> None:
+    """Render the page H1 + subtitle using Design.md tokens.
+
+    Args:
+        title: 페이지 제목 텍스트 (H1, 24px/700).
+        subtitle: 부제 1줄 — ``--color-muted`` 14px/1.45.
+    """
+    st.markdown(page_header_html(title, subtitle), unsafe_allow_html=True)
+
+
 class _KpiSource(NamedTuple):
     caption: str
     dataset: str

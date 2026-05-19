@@ -5,7 +5,12 @@ import os
 import streamlit as st
 import streamlit.components.v1 as components
 
-from app.components.cards import inject_design_css, render_epiphany_cards, render_solution_summary
+from app.components.cards import (
+    inject_design_css,
+    render_epiphany_cards,
+    render_page_header,
+    render_solution_summary,
+)
 from app.components.kakao_map import build_kakao_map_html
 from app.components.sidebar import render_sidebar
 from app.components.welcome_modal import render_welcome_modal
@@ -43,11 +48,9 @@ def main() -> None:
         return
     radius_m, search_term = render_sidebar(data.suppliers)
 
-    st.markdown(
-        "<h1>서울 유출지하수 매칭</h1>"
-        "<p class='page-subtitle'>"
-        "서울시 공공데이터 기반 유출지하수 공급처 · 수요처 매칭 분석</p>",
-        unsafe_allow_html=True,
+    render_page_header(
+        "서울 유출지하수 매칭",
+        "서울시 공공데이터 기반 유출지하수 공급처 · 수요처 매칭 분석",
     )
 
     selected = select_solution(

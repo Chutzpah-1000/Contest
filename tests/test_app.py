@@ -5,7 +5,7 @@ import math
 import pandas as pd
 import pytest
 
-from app.components.cards import _DESIGN_CSS  # 모바일 분기 회귀 가드용
+from app.components.cards import _DESIGN_CSS, page_header_html  # 모바일 분기 회귀 가드용
 from app.components.kakao_map import build_kakao_map_html
 from app.services.data import KST, last_data_refresh, load_app_data
 from app.services.matching import (
@@ -156,6 +156,19 @@ def test_last_data_refresh_returns_none_when_no_parquet(tmp_path) -> None:  # ty
     (tmp_path / "silver").mkdir()
     (tmp_path / "gold").mkdir()
     assert last_data_refresh(str(tmp_path)) is None
+
+
+def test_page_header_html_escapes_user_text() -> None:
+    html = page_header_html("<script>alert(1)</script>", "<b>x</b>")
+    assert "<script>" not in html
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
+    assert "&lt;b&gt;x&lt;/b&gt;" in html
+
+
+def test_page_header_html_uses_page_subtitle_class() -> None:
+    html = page_header_html("타이틀", "부제")
+    assert "<h1>타이틀</h1>" in html
+    assert "<p class='page-subtitle'>부제</p>" in html
 
 
 def test_kpi_mobile_breakpoint_tokens_present() -> None:

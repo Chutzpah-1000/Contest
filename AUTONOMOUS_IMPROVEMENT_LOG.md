@@ -712,7 +712,52 @@ uv run streamlit run app/main.py  # 앱 실행
 
 ---
 
-## 최종 점수 (Round 25 기준)
+## Round 26 — KPI 카드 모바일 분기 강화 (2026-05-19)
+
+- **Branch**: `agent/round-26-mobile-kpi-density` (stacked on R25)
+- **Scores (before → after)**:
+  - 기능 완성도: 9 → 9
+  - 사용자 경험: 9 → 9 (모바일·태블릿 가독성 ↑)
+  - 안정성: 9 → 9 (회귀 가드 +1, 65 passed)
+  - 성능: 9 → 9
+  - 코드 품질: 9 → 9
+  - 완성도: 9 → 9 (모바일 시연 톤 정합성)
+- **Lowest area**: 동률 9. 기존 720px 미디어쿼리는 KPI 그리드 4 → 2열 분기만 처리. 그러나 모바일에서 `.kpi-value` 22px·`.kpi-cell` 14/18 padding 이 그대로라 셀 안 공간 부족 시 텍스트 단축·줄바꿈 발생. 모바일 시연 환경 (심사위원 핸드폰) 대응 부족.
+
+### Planned improvement (C1 소진)
+720px 이하에서 KPI 셀 폰트·padding·source disclosure 폰트를 한 단계 축소:
+- `.kpi-cell` padding 14/18 → 12/14
+- `.kpi-label` 11px → 10px, margin-bottom 4 → 3
+- `.kpi-value` 22px → 18px, line-height 1.15 → 1.2
+- `.kpi-source > summary` 10px → 9px
+- `.kpi-source-body` 10px → 9px, padding 8/10 → 6/8
+
+### Files changed
+- `app/components/cards.py` — 720px 미디어쿼리 블록 확장 (6줄)
+- `tests/test_app.py` — `test_kpi_mobile_breakpoint_tokens_present` 회귀 가드 1건 (`_DESIGN_CSS` 에 미디어쿼리 + 18px + 12px padding 토큰 포함 검증)
+
+### Verification
+- `uv run ruff check --fix .` → All checks passed
+- `uv run ruff format .` → 43 files left unchanged
+- `uv run pyright` → 0 errors, 137 warnings
+- `uv run pytest` → **65 passed** (이전 64 → +1), coverage 64.04% → **65.29%**
+
+### Slack 메시지 (요약)
+> Round 26 ✅ KPI 카드 모바일 분기 강화 (720px ↓: 폰트·padding 축소·source font ↓) — 65 tests.
+
+### Commit
+- `polish(cards): KPI 카드 모바일 분기 강화 (720px ↓ padding·폰트 축소)`
+
+### Notes (다음 라운드 후보 풀)
+- **H1**: 환영 모달 단계 카드 hover 강조 (border-color → primary, lift X, Design.md 모션 가이드 준수)
+- **F1**: 모달 X 닫기 폴리시 (외부 패키지 필요, 보류)
+- **E1**: 캐시 키 hash (사용자 컨펌 권장)
+- **I1 (신규)**: 사이드바 footer 모바일 분기 — 데이터 갱신 시각·출처가 좁은 화면에서 줄 길이 어색. 720px ↓에서 footer line-height 조정.
+- 다음 라운드 1순위: **H1 모달 카드 hover** — 작은 단위, 안전. 또는 **I1**.
+
+---
+
+## 최종 점수 (Round 26 기준)
 | 영역 | 점수 |
 |------|------|
 | 기능 완성도 | 9 |

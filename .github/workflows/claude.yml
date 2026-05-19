@@ -11,10 +11,6 @@ on:
         description: "Claude에게 시킬 작업"
         required: true
         type: string
-  push:
-    branches: [main]
-    paths:
-      - 'README.md'
 
 permissions:
   contents: write
@@ -31,11 +27,6 @@ jobs:
   claude:
     if: >
       github.event_name == 'workflow_dispatch' ||
-      (
-        github.event_name == 'push' &&
-        github.actor != 'claude[bot]' &&
-        !contains(github.event.head_commit.message, '[skip-claude]')
-      ) ||
       (
         contains(github.event.comment.body, '@claude') &&
         (
@@ -59,7 +50,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           trigger_phrase: "@claude"
           use_commit_signing: true
-          prompt: ${{ inputs.prompt || 'README.md를 검토하고, 의미있는 보강이 있으면 한 줄 추가하여 commit해줘. 다른 파일은 건드리지 마. commit message 끝에 [skip-claude] 마커를 포함해서 무한루프를 막아줘.' }}
+          prompt: ${{ inputs.prompt }}
           claude_args: |
             --max-turns 10
             --allowedTools "Bash(uv sync),Bash(uv run ruff check --fix .),Bash(uv run ruff format .),Bash(uv run pyright),Bash(uv run pytest),Bash(git status),Bash(git diff)"

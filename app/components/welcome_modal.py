@@ -104,6 +104,10 @@ _MODAL_CSS: Final[str] = """
 .welcome-feature-card {
   background:#F7F7F5;border:1px solid #E4E4E0;border-radius:10px;
   padding:22px 20px;margin-bottom:6px;
+  transition:border-color .15s ease, background-color .15s ease;
+}
+.welcome-feature-card:hover {
+  border-color:#0071E3;background:#FCFCFB;
 }
 .welcome-feature-icon {font-size:36px;line-height:1;margin-bottom:10px;}
 .welcome-feature-title {

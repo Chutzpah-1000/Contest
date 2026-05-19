@@ -853,7 +853,50 @@ uv run streamlit run app/main.py  # 앱 실행
 
 ---
 
-## 최종 점수 (Round 28 기준)
+## Round 29 — 섹션 레이블 헬퍼 추출 (L1) (2026-05-19)
+
+- **Branch**: `agent/round-29-section-label-helper` (stacked on R28)
+- **Scores (before → after)**:
+  - 기능 완성도: 9 → 9
+  - 사용자 경험: 9 → 9
+  - 안정성: 9 → 9 (XSS escape 회귀 가드 +2, 70 passed)
+  - 성능: 9 → 9
+  - 코드 품질: 9 → 9 (main.py 인라인 unsafe_allow_html 1건 → 헬퍼 호출)
+  - 완성도: 9 → 9
+- **Lowest area**: 동률 9. Round 28 K1 패턴(`render_page_header`) 의 자매 — `app/main.py` 의 "공급-수요 매칭 지도" 섹션 레이블도 인라인 `unsafe_allow_html` 마크업으로 남아 있어 응집도·escape 가드 동일 문제.
+
+### Planned improvement (L1 소진)
+`app/components/cards.py` 에 `section_label_html(text) -> str` (순수, escape) + `render_section_label(text) -> None` (Streamlit wrapper). `main.py` 인라인 4줄 → 1줄 호출.
+
+### Files changed
+- `app/components/cards.py` — `section_label_html` + `render_section_label` 두 함수 신규.
+- `app/main.py` — 인라인 `st.markdown("<p class='section-label'>...")` → `render_section_label(...)`.
+- `tests/test_app.py`
+  - `test_section_label_html_escapes_user_text` — `<img onerror>` 페이로드 escape 검증.
+  - `test_section_label_html_uses_section_label_class` — 정확한 마크업 일치.
+
+### Verification
+- `uv run ruff check --fix .` → All checks passed
+- `uv run ruff format .` → 43 files left unchanged
+- `uv run pyright` → 0 errors, 137 warnings
+- `uv run pytest` → **70 passed** (이전 68 → +2), coverage 65.32% → **65.35%**
+
+### Slack 메시지 (요약)
+> Round 29 ✅ 섹션 레이블 헬퍼 추출 + escape 가드 — main.py 응집도 ↑, 70 tests.
+
+### Commit
+- `refactor(cards): main.py 섹션 레이블 인라인 → render_section_label 헬퍼 추출 + escape 가드`
+
+### Notes (다음 라운드 후보 풀)
+- **I1**: 사이드바 footer 모바일 분기 — 데이터 갱신 시각·출처 line-height·font-size 미세 조정
+- **M1 (신규)**: `app/main.py:67` 의 "데이터 출처: 서울 열린데이터광장 ..." `st.caption` 도 `render_data_source_caption()` 헬퍼로 추출 — refactor 일관성 (그러나 caption은 이미 escape 안전).
+- **F1**: 모달 X 닫기 폴리시 (보류)
+- **E1**: 캐시 키 hash (사용자 컨펌 권장)
+- 다음 라운드 1순위: **I1 사이드바 footer 모바일** (단일 라운드 적정) 또는 **N1 (신규)** — `app/main.py` warning 메시지 텍스트 톤 일관화.
+
+---
+
+## 최종 점수 (Round 29 기준)
 | 영역 | 점수 |
 |------|------|
 | 기능 완성도 | 9 |

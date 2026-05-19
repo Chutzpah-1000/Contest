@@ -9,6 +9,7 @@ from app.components.cards import (
     inject_design_css,
     render_epiphany_cards,
     render_page_header,
+    render_section_label,
     render_solution_summary,
 )
 from app.components.kakao_map import build_kakao_map_html
@@ -70,10 +71,7 @@ def main() -> None:
             icon="⚠️",
         )
 
-    st.markdown(
-        "<p class='section-label'>공급-수요 매칭 지도</p>",
-        unsafe_allow_html=True,
-    )
+    render_section_label("공급-수요 매칭 지도")
     components.html(
         build_kakao_map_html(
             suppliers=data.suppliers,

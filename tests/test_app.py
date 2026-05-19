@@ -5,7 +5,11 @@ import math
 import pandas as pd
 import pytest
 
-from app.components.cards import _DESIGN_CSS, page_header_html  # 모바일 분기 회귀 가드용
+from app.components.cards import (  # 모바일 분기·헤더 헬퍼 회귀 가드용
+    _DESIGN_CSS,
+    page_header_html,
+    section_label_html,
+)
 from app.components.kakao_map import build_kakao_map_html
 from app.services.data import KST, last_data_refresh, load_app_data
 from app.services.matching import (
@@ -169,6 +173,16 @@ def test_page_header_html_uses_page_subtitle_class() -> None:
     html = page_header_html("타이틀", "부제")
     assert "<h1>타이틀</h1>" in html
     assert "<p class='page-subtitle'>부제</p>" in html
+
+
+def test_section_label_html_escapes_user_text() -> None:
+    html = section_label_html("<img src=x onerror=alert(1)>")
+    assert "<img" not in html
+    assert "&lt;img src=x onerror=alert(1)&gt;" in html
+
+
+def test_section_label_html_uses_section_label_class() -> None:
+    assert section_label_html("매칭 지도") == "<p class='section-label'>매칭 지도</p>"
 
 
 def test_kpi_mobile_breakpoint_tokens_present() -> None:

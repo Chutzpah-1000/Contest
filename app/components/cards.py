@@ -179,6 +179,29 @@ def render_page_header(title: str, subtitle: str) -> None:
     st.markdown(page_header_html(title, subtitle), unsafe_allow_html=True)
 
 
+def section_label_html(text: str) -> str:
+    """Compose the section label HTML (``<p class='section-label'>``) with escape.
+
+    Pure function — exposed for unit testing the escape behaviour.
+
+    Args:
+        text: 섹션 레이블 텍스트 — HTML escape 처리.
+
+    Returns:
+        ``<p class='section-label'>{text}</p>`` 마크업.
+    """
+    return f"<p class='section-label'>{escape(text)}</p>"
+
+
+def render_section_label(text: str) -> None:
+    """Render a section label using Design.md tokens (11px/600 muted, uppercase).
+
+    Args:
+        text: 섹션 레이블 텍스트.
+    """
+    st.markdown(section_label_html(text), unsafe_allow_html=True)
+
+
 class _KpiSource(NamedTuple):
     caption: str
     dataset: str
